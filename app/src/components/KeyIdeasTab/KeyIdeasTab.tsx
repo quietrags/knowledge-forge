@@ -1,8 +1,10 @@
-import { useResearchData } from '../../store/useStore'
+import { useResearchData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './KeyIdeasTab.module.css'
 
 export function KeyIdeasTab() {
   const researchData = useResearchData()
+  const { addKeyIdea } = useForgeActions()
 
   if (!researchData || researchData.keyIdeas.length === 0) {
     return (
@@ -38,7 +40,13 @@ export function KeyIdeasTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add key idea</button>
+      <InlineAdd
+        placeholder="Key idea title..."
+        buttonText="+ Add key idea"
+        secondPlaceholder="Description..."
+        onAdd={() => {}}
+        onAddTwo={(title, description) => addKeyIdea(title, description)}
+      />
     </div>
   )
 }

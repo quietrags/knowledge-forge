@@ -9,8 +9,19 @@ import type {
   CodeContent,
   CanvasContent,
   Question,
+  Category,
+  KeyIdea,
+  EmergentQuestion,
+  Boundary,
+  Concept,
+  AnswerableQuestion,
+  Misconception,
+  Insight,
   MODE_COLORS,
 } from '../types'
+
+// Helper to generate unique IDs
+const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
 // ============================================================================
 // Store State Interface
@@ -48,6 +59,23 @@ interface ForgeState {
   // Helpers
   getSelectedQuestion: () => Question | null
   updateCSSVariables: (mode: Mode) => void
+
+  // Research Mode CRUD
+  addQuestion: (categoryId: string, questionText: string) => void
+  addSubQuestion: (questionId: string, subQuestionText: string) => void
+  addCategory: (categoryName: string) => void
+  addKeyIdea: (title: string, description: string) => void
+  addEmergentQuestion: (question: string, sourceCategory: string) => void
+  promoteEmergentQuestion: (emergentQuestionId: string, targetCategoryId: string) => void
+
+  // Build Mode CRUD
+  addBoundary: (question: string, answer: string) => void
+  addConcept: (term: string, definition: string) => void
+  addAnswerableQuestion: (question: string) => void
+
+  // Understand Mode CRUD
+  addMisconception: (question: string, answer: string) => void
+  addInsight: (insight: string, context: string) => void
 }
 
 // ============================================================================
@@ -138,6 +166,232 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     document.documentElement.style.setProperty('--accent', colors.accent)
     document.documentElement.style.setProperty('--accent-bg', colors.accentBg)
   },
+
+  // Research Mode CRUD
+  addQuestion: (categoryId, questionText) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newQuestion: Question = {
+      id: generateId(),
+      question: questionText,
+      status: 'pending',
+      sources: [],
+      subQuestions: [],
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: researchData.categories.map((cat) =>
+          cat.id === categoryId
+            ? { ...cat, questions: [...cat.questions, newQuestion] }
+            : cat
+        ),
+      },
+    })
+  },
+
+  addSubQuestion: (questionId, subQuestionText) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: researchData.categories.map((cat) => ({
+          ...cat,
+          questions: cat.questions.map((q) =>
+            q.id === questionId
+              ? {
+                  ...q,
+                  subQuestions: [
+                    ...q.subQuestions,
+                    { id: generateId(), question: subQuestionText, status: 'pending' as const },
+                  ],
+                }
+              : q
+          ),
+        })),
+      },
+    })
+  },
+
+  addCategory: (categoryName) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newCategory: Category = {
+      id: generateId(),
+      name: categoryName,
+      questions: [],
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: [...researchData.categories, newCategory],
+      },
+    })
+  },
+
+  addKeyIdea: (title, description) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newKeyIdea: KeyIdea = {
+      id: generateId(),
+      title,
+      description,
+      relevance: '',
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        keyIdeas: [...researchData.keyIdeas, newKeyIdea],
+      },
+    })
+  },
+
+  addEmergentQuestion: (question, sourceCategory) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newEmergent: EmergentQuestion = {
+      id: generateId(),
+      question,
+      sourceCategory,
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        emergentQuestions: [...researchData.emergentQuestions, newEmergent],
+      },
+    })
+  },
+
+  promoteEmergentQuestion: (emergentQuestionId, targetCategoryId) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const emergent = researchData.emergentQuestions.find((eq) => eq.id === emergentQuestionId)
+    if (!emergent) return
+
+    const newQuestion: Question = {
+      id: generateId(),
+      question: emergent.question,
+      status: 'pending',
+      sources: [],
+      subQuestions: [],
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: researchData.categories.map((cat) =>
+          cat.id === targetCategoryId
+            ? { ...cat, questions: [...cat.questions, newQuestion] }
+            : cat
+        ),
+        emergentQuestions: researchData.emergentQuestions.filter(
+          (eq) => eq.id !== emergentQuestionId
+        ),
+      },
+    })
+  },
+
+  // Build Mode CRUD
+  addBoundary: (question, answer) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newBoundary: Boundary = {
+      id: generateId(),
+      question,
+      answer,
+    }
+
+    set({
+      buildData: {
+        ...buildData,
+        boundaries: [...buildData.boundaries, newBoundary],
+      },
+    })
+  },
+
+  addConcept: (term, definition) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newConcept: Concept = {
+      id: generateId(),
+      term,
+      definition,
+    }
+
+    set({
+      buildData: {
+        ...buildData,
+        concepts: [...buildData.concepts, newConcept],
+      },
+    })
+  },
+
+  addAnswerableQuestion: (question) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newQuestion: AnswerableQuestion = {
+      id: generateId(),
+      question,
+    }
+
+    set({
+      buildData: {
+        ...buildData,
+        questions: [...buildData.questions, newQuestion],
+      },
+    })
+  },
+
+  // Understand Mode CRUD
+  addMisconception: (question, answer) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newMisconception: Misconception = {
+      id: generateId(),
+      question,
+      answer,
+    }
+
+    set({
+      understandData: {
+        ...understandData,
+        misconceptions: [...understandData.misconceptions, newMisconception],
+      },
+    })
+  },
+
+  addInsight: (insight, context) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newInsight: Insight = {
+      id: generateId(),
+      insight,
+      context,
+    }
+
+    set({
+      understandData: {
+        ...understandData,
+        insights: [...understandData.insights, newInsight],
+      },
+    })
+  },
 }))
 
 // ============================================================================
@@ -167,5 +421,19 @@ export const useForgeActions = () =>
       setResearchData: state.setResearchData,
       setCurrentCode: state.setCurrentCode,
       setCurrentCanvas: state.setCurrentCanvas,
+      // Research CRUD
+      addQuestion: state.addQuestion,
+      addSubQuestion: state.addSubQuestion,
+      addCategory: state.addCategory,
+      addKeyIdea: state.addKeyIdea,
+      addEmergentQuestion: state.addEmergentQuestion,
+      promoteEmergentQuestion: state.promoteEmergentQuestion,
+      // Build CRUD
+      addBoundary: state.addBoundary,
+      addConcept: state.addConcept,
+      addAnswerableQuestion: state.addAnswerableQuestion,
+      // Understand CRUD
+      addMisconception: state.addMisconception,
+      addInsight: state.addInsight,
     }))
   )

@@ -21,3 +21,4 @@ export { MentalModelTab } from './MentalModelTab/MentalModelTab'
 
 // Shared Components
 export { ChatInput } from './ChatInput/ChatInput'
+export { InlineAdd } from './InlineAdd/InlineAdd'

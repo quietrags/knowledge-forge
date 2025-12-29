@@ -1,8 +1,10 @@
-import { useUnderstandData } from '../../store/useStore'
+import { useUnderstandData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './MisconceptionsTab.module.css'
 
 export function MisconceptionsTab() {
   const understandData = useUnderstandData()
+  const { addMisconception } = useForgeActions()
 
   if (!understandData || understandData.misconceptions.length === 0) {
     return (
@@ -37,7 +39,13 @@ export function MisconceptionsTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add misconception</button>
+      <InlineAdd
+        placeholder="Misconception question..."
+        buttonText="+ Add misconception"
+        secondPlaceholder="Correct answer..."
+        onAdd={() => {}}
+        onAddTwo={(question, answer) => addMisconception(question, answer)}
+      />
     </div>
   )
 }

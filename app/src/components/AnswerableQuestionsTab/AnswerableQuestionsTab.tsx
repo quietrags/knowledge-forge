@@ -1,8 +1,10 @@
-import { useBuildData } from '../../store/useStore'
+import { useBuildData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './AnswerableQuestionsTab.module.css'
 
 export function AnswerableQuestionsTab() {
   const buildData = useBuildData()
+  const { addAnswerableQuestion } = useForgeActions()
 
   if (!buildData || buildData.questions.length === 0) {
     return (
@@ -34,7 +36,11 @@ export function AnswerableQuestionsTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add question</button>
+      <InlineAdd
+        placeholder="Enter a question you can now answer..."
+        buttonText="+ Add question"
+        onAdd={addAnswerableQuestion}
+      />
     </div>
   )
 }

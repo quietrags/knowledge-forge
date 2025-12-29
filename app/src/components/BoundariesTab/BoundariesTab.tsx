@@ -1,8 +1,10 @@
-import { useBuildData } from '../../store/useStore'
+import { useBuildData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './BoundariesTab.module.css'
 
 export function BoundariesTab() {
   const buildData = useBuildData()
+  const { addBoundary } = useForgeActions()
 
   if (!buildData || buildData.boundaries.length === 0) {
     return (
@@ -34,7 +36,13 @@ export function BoundariesTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add boundary question</button>
+      <InlineAdd
+        placeholder="Boundary question..."
+        buttonText="+ Add boundary question"
+        secondPlaceholder="Answer..."
+        onAdd={() => {}}
+        onAddTwo={(question, answer) => addBoundary(question, answer)}
+      />
     </div>
   )
 }

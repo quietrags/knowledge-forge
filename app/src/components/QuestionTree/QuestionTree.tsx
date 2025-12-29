@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useResearchData, useSelectedQuestionId, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import type { Category, Question } from '../../types'
 import styles from './QuestionTree.module.css'
 
@@ -36,16 +37,19 @@ function QuestionItem({
   isSelected,
   onToggle,
   onSelect,
+  onAddSubQuestion,
 }: {
   question: Question
   isExpanded: boolean
   isSelected: boolean
   onToggle: () => void
   onSelect: () => void
+  onAddSubQuestion: (text: string) => void
 }) {
   const handleHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onToggle()
+    onSelect() // Also select when clicking header
   }
 
   const handleCardClick = () => {
@@ -68,7 +72,7 @@ function QuestionItem({
       </div>
 
       {isExpanded && (
-        <div className={styles.questionBody}>
+        <div className={styles.questionBody} onClick={(e) => e.stopPropagation()}>
           {question.answer ? (
             <div className={styles.answer}>
               <div className={styles.answerLabel}>Answer</div>
@@ -98,15 +102,17 @@ function QuestionItem({
             </div>
           )}
 
-          {question.subQuestions && question.subQuestions.length > 0 && (
-            <div className={styles.subQuestions}>
-              <div className={styles.subQuestionsLabel}>Sub-questions</div>
-              {question.subQuestions.map((sq) => (
-                <SubQuestionItem key={sq.id} subQuestion={sq} />
-              ))}
-              <button className={styles.addBtn}>+ Add</button>
-            </div>
-          )}
+          <div className={styles.subQuestions}>
+            <div className={styles.subQuestionsLabel}>Sub-questions</div>
+            {question.subQuestions.map((sq) => (
+              <SubQuestionItem key={sq.id} subQuestion={sq} />
+            ))}
+            <InlineAdd
+              placeholder="Enter sub-question..."
+              buttonText="+ Add sub-question"
+              onAdd={onAddSubQuestion}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -120,12 +126,16 @@ function CategorySection({
   selectedId,
   onToggle,
   onSelect,
+  onAddQuestion,
+  onAddSubQuestion,
 }: {
   category: Category
   expandedIds: Set<string>
   selectedId: string | null
   onToggle: (id: string) => void
   onSelect: (id: string) => void
+  onAddQuestion: (categoryId: string, text: string) => void
+  onAddSubQuestion: (questionId: string, text: string) => void
 }) {
   return (
     <div className={styles.category}>
@@ -134,7 +144,6 @@ function CategorySection({
           <span className={styles.categoryIcon}>📂</span>
           {category.name}
         </div>
-        <button className={styles.categoryAddBtn}>+ Add question</button>
       </div>
       <div className={styles.questionList}>
         {category.questions.map((question) => (
@@ -145,9 +154,14 @@ function CategorySection({
             isSelected={selectedId === question.id}
             onToggle={() => onToggle(question.id)}
             onSelect={() => onSelect(question.id)}
+            onAddSubQuestion={(text) => onAddSubQuestion(question.id, text)}
           />
         ))}
-        <button className={styles.addBtn}>+ Add sub-question</button>
+        <InlineAdd
+          placeholder="Enter question..."
+          buttonText="+ Add question"
+          onAdd={(text) => onAddQuestion(category.id, text)}
+        />
       </div>
     </div>
   )
@@ -157,7 +171,7 @@ function CategorySection({
 export function QuestionTree() {
   const researchData = useResearchData()
   const selectedQuestionId = useSelectedQuestionId()
-  const { selectQuestion } = useForgeActions()
+  const { selectQuestion, addQuestion, addSubQuestion, addCategory } = useForgeActions()
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const handleToggle = useCallback((id: string) => {
@@ -182,6 +196,27 @@ export function QuestionTree() {
       })
     },
     [selectQuestion]
+  )
+
+  const handleAddQuestion = useCallback(
+    (categoryId: string, text: string) => {
+      addQuestion(categoryId, text)
+    },
+    [addQuestion]
+  )
+
+  const handleAddSubQuestion = useCallback(
+    (questionId: string, text: string) => {
+      addSubQuestion(questionId, text)
+    },
+    [addSubQuestion]
+  )
+
+  const handleAddCategory = useCallback(
+    (name: string) => {
+      addCategory(name)
+    },
+    [addCategory]
   )
 
   if (!researchData) {
@@ -209,9 +244,15 @@ export function QuestionTree() {
             selectedId={selectedQuestionId}
             onToggle={handleToggle}
             onSelect={handleSelect}
+            onAddQuestion={handleAddQuestion}
+            onAddSubQuestion={handleAddSubQuestion}
           />
         ))}
-        <button className={styles.addCategoryBtn}>+ Add question category</button>
+        <InlineAdd
+          placeholder="Enter category name..."
+          buttonText="+ Add question category"
+          onAdd={handleAddCategory}
+        />
       </div>
     </div>
   )

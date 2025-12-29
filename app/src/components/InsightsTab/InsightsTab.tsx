@@ -1,8 +1,10 @@
-import { useUnderstandData } from '../../store/useStore'
+import { useUnderstandData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './InsightsTab.module.css'
 
 export function InsightsTab() {
   const understandData = useUnderstandData()
+  const { addInsight } = useForgeActions()
 
   if (!understandData || understandData.insights.length === 0) {
     return (
@@ -34,7 +36,13 @@ export function InsightsTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add insight</button>
+      <InlineAdd
+        placeholder="Insight (quote or statement)..."
+        buttonText="+ Add insight"
+        secondPlaceholder="Context..."
+        onAdd={() => {}}
+        onAddTwo={(insight, context) => addInsight(insight, context)}
+      />
     </div>
   )
 }

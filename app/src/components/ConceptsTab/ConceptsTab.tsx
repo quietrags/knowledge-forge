@@ -1,8 +1,10 @@
-import { useBuildData } from '../../store/useStore'
+import { useBuildData, useForgeActions } from '../../store/useStore'
+import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './ConceptsTab.module.css'
 
 export function ConceptsTab() {
   const buildData = useBuildData()
+  const { addConcept } = useForgeActions()
 
   if (!buildData || buildData.concepts.length === 0) {
     return (
@@ -31,7 +33,13 @@ export function ConceptsTab() {
         ))}
       </div>
 
-      <button className={styles.addBtn}>+ Add concept</button>
+      <InlineAdd
+        placeholder="Term..."
+        buttonText="+ Add concept"
+        secondPlaceholder="Definition..."
+        onAdd={() => {}}
+        onAddTwo={(term, definition) => addConcept(term, definition)}
+      />
     </div>
   )
 }
