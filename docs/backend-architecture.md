@@ -88,7 +88,8 @@ Design a unified backend that handles orchestration, streaming, API contracts, s
 |----------|--------|-----------|
 | Backend Language | Python + FastAPI | Matches user's existing patterns (epic-business-regression-showcase) |
 | Streaming | Server-Sent Events (SSE) | Simpler than WebSocket, one-way server→client, native browser support |
-| Claude SDK | `anthropic` Python SDK | Mature, supports streaming via `messages.stream()` |
+| Claude SDK | Claude Agent SDK | Official agent framework with tool use, streaming, proper agent patterns |
+| Documentation | Context7 MCP | Real-time docs lookup for libraries during Research agent execution |
 | Persistence | File-based JSON | Matches skill spec outputs, simple MVP, upgrade to DB later |
 | Type Sharing | Pydantic ↔ TypeScript | Generate TypeScript from Pydantic or maintain parallel definitions |
 | Session State | Server-side with client sync | Server is source of truth, client receives updates via SSE |
@@ -393,20 +394,36 @@ export function createJourneyStream(sessionId: string, handlers: StreamHandlers)
 
 ## Agent Interface Contract
 
+Built using **Claude Agent SDK** for proper agent patterns, tool use, and streaming.
+
 ```python
 # server/agents/base.py
 
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator
+from claude_agent_sdk import Agent, Tool
 from .events import SSEEvent
 
-class BaseAgent(ABC):
-    """Base interface for all mode agents."""
+class BaseForgeAgent(ABC):
+    """
+    Base interface for all mode agents.
+    Built on Claude Agent SDK for tool use, streaming, and agent patterns.
+    """
 
-    def __init__(self, claude_client, session_state, event_emitter):
-        self.client = claude_client
+    def __init__(self, session_state, event_emitter):
         self.state = session_state
         self.emit = event_emitter
+        self.agent = self._create_agent()
+
+    @abstractmethod
+    def _create_agent(self) -> Agent:
+        """Create the Agent SDK agent with appropriate tools and system prompt."""
+        pass
+
+    @abstractmethod
+    def _get_tools(self) -> list[Tool]:
+        """Define tools available to this agent."""
+        pass
 
     @abstractmethod
     async def initialize(self, journey_brief: JourneyDesignBrief) -> None:
@@ -427,6 +444,56 @@ class BaseAgent(ABC):
     async def restore_state(self, state: dict) -> None:
         """Restore agent from persisted state."""
         pass
+```
+
+### Research Agent Tools (with Context7)
+
+```python
+# server/agents/research/tools.py
+
+from claude_agent_sdk import Tool
+
+# Context7 integration for real-time documentation lookup
+context7_resolve = Tool(
+    name="resolve_library_id",
+    description="Resolve a library name to Context7 ID for documentation lookup",
+    # Calls Context7 MCP: resolve-library-id
+)
+
+context7_query = Tool(
+    name="query_docs",
+    description="Query up-to-date documentation for a library",
+    # Calls Context7 MCP: query-docs
+)
+
+web_search = Tool(
+    name="web_search",
+    description="Search the web for current information",
+    # Uses Claude's built-in web search
+)
+
+# Research agent has access to:
+RESEARCH_TOOLS = [
+    context7_resolve,  # Resolve library names → Context7 IDs
+    context7_query,    # Get latest docs from Context7
+    web_search,        # General web search for sources
+]
+```
+
+### Build/Understand Agent Tools
+
+```python
+# These agents are more conversational, fewer tools needed
+
+BUILD_TOOLS = [
+    # Code execution for examples (optional)
+    # File write for artifacts (optional)
+]
+
+UNDERSTAND_TOOLS = [
+    # Primarily conversational - diagnostic probes
+    # May use web_search for clarifying examples
+]
 ```
 
 ---
@@ -625,7 +692,7 @@ knowledge-forge/
 │   ├── data/
 │   │   └── sessions/
 │   │
-│   ├── requirements.txt
+│   ├── requirements.txt          # anthropic, claude-agent-sdk, fastapi, uvicorn
 │   └── pyproject.toml
 │
 ├── shared/                       # NEW: Shared type definitions
@@ -675,6 +742,50 @@ git worktree add ../kf-persistence backend-persistence
 3. `frontend-api-integration` → main
 4. `backend-orchestrator` → main
 5. `backend-research-agent`, `backend-understand-agent`, `backend-build-agent` → main (parallel)
+
+---
+
+## Implementation Notes
+
+### Using Agent SDK
+When implementing agents, use the `/agent-sdk-dev:new-sdk-app` skill to bootstrap properly:
+- Creates correct project structure
+- Sets up Agent SDK dependencies
+- Follows SDK best practices
+
+After implementation, run `/agent-sdk-dev:agent-sdk-verifier-py` to verify the agent follows SDK patterns.
+
+### Using Context7 for Documentation
+The Research agent should use Context7 MCP for real-time documentation:
+1. Call `resolve-library-id` to get the Context7 library ID
+2. Call `query-docs` with specific questions about the library
+3. Integrate responses into research answers with proper sourcing
+
+Example flow:
+```
+User asks: "What caching strategies does LangChain support?"
+  ↓
+Research Agent calls: resolve-library-id("langchain", "caching strategies")
+  ↓
+Gets: "/langchain-ai/langchain"
+  ↓
+Calls: query-docs("/langchain-ai/langchain", "How to implement caching")
+  ↓
+Gets: Up-to-date documentation with code examples
+  ↓
+Synthesizes into answer with Context7 as source
+```
+
+### Dependencies
+```
+# server/requirements.txt
+anthropic>=0.40.0
+claude-agent-sdk>=0.1.0
+fastapi>=0.115.0
+uvicorn>=0.32.0
+sse-starlette>=2.0.0
+pydantic>=2.0.0
+```
 
 ---
 
