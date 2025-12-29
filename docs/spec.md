@@ -1,6 +1,6 @@
 # Knowledge Forge — Specification
 
-**Version:** 0.2
+**Version:** 0.3
 **Date:** 2025-12-29
 
 ---
@@ -47,6 +47,132 @@ A learning platform with two **end goals** and one **supporting tool**:
 │                     │ Question → Category → Adjacent│                           │
 │                     └──────────────────────────────┘                           │
 └─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Journey Intake: Routing & Design
+
+Users don't always know which mode they need. The system must **route questions intelligently** and **design journeys backwards** from the ideal answer.
+
+### The Two Mechanisms
+
+```
+User asks a question
+        │
+        ▼
+┌───────────────────────────────┐
+│  MECHANISM 1: Quick Route     │
+│  (Parse the question shape)   │
+├───────────────────────────────┤
+│  "How does X work?" → Research│
+│  "Why does X happen?" → Understand
+│  "How do I do X?" → Build     │
+│  "What should I use?" → Research → Build
+└───────────────────────────────┘
+        │
+        ▼ (if ambiguous or misaligned)
+┌───────────────────────────────┐
+│  MECHANISM 2: Work Backwards  │
+│  (Design from ideal answer)   │
+├───────────────────────────────┤
+│  1. What would a great answer │
+│     look like?                │
+│  2. What must the journey     │
+│     produce to get there?     │
+│  3. Which mode fits?          │
+│  4. What might they REALLY    │
+│     be asking?                │
+└───────────────────────────────┘
+        │
+        ▼
+┌───────────────────────────────┐
+│  CONFIRM with user            │
+│  "It sounds like you want to  │
+│   [do X / understand Y /      │
+│    know Z]. Is that right?"   │
+└───────────────────────────────┘
+        │
+        ▼
+    Begin journey
+```
+
+### Question Shape → Mode Routing
+
+| Question Shape | Primary Signal | Routes To |
+|----------------|----------------|-----------|
+| "How does X work?" | Seeking facts/mechanism | **Research** |
+| "What is X?" | Seeking definition/facts | **Research** |
+| "Why does X happen?" | Seeking explanation/cause | **Understand** |
+| "What's the difference between X and Y?" | Seeking distinction | **Understand** |
+| "How do I do X?" | Seeking skill/capability | **Build** |
+| "Help me create X" | Seeking artifact | **Build** |
+| "What should I use for X?" | Seeking informed choice | **Research → Build** |
+| "Compare X vs Y for doing Z" | Seeking decision support | **Research → Build** |
+
+### Work Backwards: The Design Brief
+
+Before starting any journey, the system generates a **design brief**:
+
+```typescript
+interface JourneyDesignBrief {
+  originalQuestion: string
+
+  // Mechanism 2: Work backwards
+  idealAnswer: string           // 2-3 sentences: what would genuinely help?
+  answerType: 'facts' | 'understanding' | 'skill'
+
+  // Routing decision
+  primaryMode: 'research' | 'understand' | 'build'
+  secondaryMode?: 'research'    // if research is needed to support primary
+
+  // Potential misalignment
+  implicitQuestion?: string     // what they might REALLY be asking
+
+  // Confirmation prompt
+  confirmationMessage: string   // "It sounds like you want to..."
+}
+```
+
+### Example: Detecting Misalignment
+
+**User asks:** "How do I write better prompts?"
+
+**Quick Route says:** "How do I" → Build ✓
+
+**Work Backwards says:**
+- **Ideal answer:** "5 concrete techniques with examples and when to use each"
+- **Answer type:** skill
+- **Routes to:** Build ✓
+
+But if user had asked: "I want to understand how prompting works"
+
+**Quick Route says:** "understand" → Understand
+
+**Work Backwards says:**
+- **Ideal answer:** "5 concrete techniques..." (same practical need!)
+- **Answer type:** skill
+- **Implicit question:** "How do I prompt better?" (skill, not understanding)
+- **Confirmation:** "You said 'understand' but it sounds like you want to get better at prompting—learn techniques you can use. Is that right, or do you want to understand the underlying mechanics first?"
+
+### When Research Is Primary
+
+Research can be the **primary destination** (not just supporting tool) when:
+
+1. **Fact-finding:** "What are the token limits for different Claude models?"
+2. **Landscape survey:** "What approaches exist for prompt caching?"
+3. **Comparison:** "How do OpenAI and Anthropic compare on function calling?"
+
+In these cases, the user wants **knowledge gathered**, not understanding transformed or skill built.
+
+```
+Research as Primary:
+  User gets → Questions answered, sources cited, key insights extracted
+  Journey ends → Research Essay synthesizes findings
+
+Research as Supporting:
+  User gets → Specific facts needed for understand/build journey
+  Journey continues → Returns to primary mode with knowledge
 ```
 
 ---

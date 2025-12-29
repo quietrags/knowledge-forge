@@ -1,7 +1,102 @@
 # Knowledge Forge — UI Design
 
-**Version:** 0.2
+**Version:** 0.3
 **Date:** 2025-12-29
+
+---
+
+## Journey Intake (Onboarding Flow)
+
+Before entering a mode, users go through an **intake flow** that routes their question:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                         What do you want to explore?                        │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  [                                                                  ] │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│                              [Begin Journey →]                              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Routing Confirmation
+
+After analyzing the question, the system presents a confirmation:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  You asked: "How do I write better prompts?"                               │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  It sounds like you want to BUILD a prompting skill—learn            │  │
+│  │  techniques you can apply immediately.                               │  │
+│  │                                                                       │  │
+│  │  I'll help you:                                                      │  │
+│  │  • Identify key prompting constructs (techniques)                    │  │
+│  │  • Make decisions about when to use each                             │  │
+│  │  • Build capabilities you can apply to your work                     │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│        [Yes, let's build →]     [Actually, I want to understand first]     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Alternative Route Option
+
+If user chooses "Actually, I want to understand first":
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Got it. Let's UNDERSTAND how prompting works first.                       │
+│                                                                             │
+│  I'll help you:                                                            │
+│  • Surface your current assumptions about prompting                        │
+│  • Develop precise concepts (like tokens, context, attention)              │
+│  • Build a mental model of how LLMs actually process prompts               │
+│                                                                             │
+│  This understanding will inform better prompting later.                    │
+│                                                                             │
+│                         [Begin Understanding →]                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Research as Primary
+
+For research-shaped questions:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  You asked: "What approaches exist for prompt caching?"                    │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  This is a RESEARCH question—you want to survey what exists          │  │
+│  │  and understand the landscape.                                       │  │
+│  │                                                                       │  │
+│  │  I'll help you:                                                      │  │
+│  │  • Decompose this into answerable questions                          │  │
+│  │  • Find and evaluate sources                                         │  │
+│  │  • Synthesize findings into key insights                             │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  [Begin Research →]   [I actually want to build something with this →]     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -41,6 +136,7 @@
 
 | Tab | Purpose | Elements |
 |-----|---------|----------|
+| **Research Essay** | Synthesis narrative | Integrates findings into coherent story |
 | **Questions** | Core work | Tree: Category > Questions (expandable) |
 | **Key Insights** | Rise-above synthesis | Insights answering multiple questions |
 | **Frontier** | What's next | Adjacent questions discovered |
