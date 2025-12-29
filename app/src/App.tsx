@@ -1,6 +1,13 @@
 import { useEffect } from 'react'
 import './App.css'
-import { useForgeStore, useMode, useActiveTab, useForgeActions } from './store/useStore'
+import {
+  useForgeStore,
+  useMode,
+  useActiveTab,
+  useForgeActions,
+  useJourneyState,
+  useBuildJourney,
+} from './store/useStore'
 import {
   Header,
   PathBar,
@@ -17,6 +24,9 @@ import {
   ConceptsTab,
   ModelTab,
   ChatInput,
+  JourneyIntake,
+  RoutingConfirmation,
+  GroundingPanel,
 } from './components'
 import { MODE_TABS } from './types'
 import {
@@ -33,6 +43,8 @@ import {
 function App() {
   const mode = useMode()
   const activeTab = useActiveTab()
+  const journeyState = useJourneyState()
+  const buildJourney = useBuildJourney()
   const { setActiveTab } = useForgeActions()
 
   // Initialize data and CSS variables on mount
@@ -117,6 +129,18 @@ function App() {
     return null
   }
 
+  // Show journey intake flow
+  if (journeyState === 'intake') {
+    return <JourneyIntake />
+  }
+
+  if (journeyState === 'confirming') {
+    return <RoutingConfirmation />
+  }
+
+  // Check if we're in build grounding phase
+  const isGrounding = mode === 'build' && buildJourney?.phase === 'grounding'
+
   return (
     <div className="app">
       <Header />
@@ -124,6 +148,9 @@ function App() {
 
       <main className="main">
         <div className="knowledge-area">
+          {/* Show grounding panel in build mode during grounding phase */}
+          {isGrounding && <GroundingPanel />}
+
           <div className="content-tabs">
             {MODE_TABS[mode].map((tab, i) => (
               <button

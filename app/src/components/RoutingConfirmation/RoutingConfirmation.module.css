@@ -1,0 +1,152 @@
+.container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  z-index: 100;
+}
+
+.content {
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+.question {
+  font-size: 1.125rem;
+  color: #475569;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.confirmation {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.modeInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.modeLabel {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.modeDescription {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.helpList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.helpList li {
+  font-size: 0.9375rem;
+  color: #475569;
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.helpList li::before {
+  content: '•';
+  position: absolute;
+  left: 0.5rem;
+  color: var(--accent, #7c3aed);
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.primaryButton {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.primaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.alternatives {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alternativesLabel {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.alternativeButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.alternativeButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #475569;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.alternativeButton:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.backButton {
+  display: block;
+  margin: 1.5rem auto 0;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.backButton:hover {
+  color: #1e293b;
+}

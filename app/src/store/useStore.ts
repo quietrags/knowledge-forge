@@ -19,6 +19,11 @@ import type {
   Model,
   Assumption,
   MODE_COLORS,
+  JourneyState,
+  JourneyDesignBrief,
+  BuildJourney,
+  BuildPhase,
+  GroundingConcept,
 } from '../types'
 
 // Helper to generate unique IDs
@@ -29,6 +34,10 @@ const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2
 // ============================================================================
 
 interface ForgeState {
+  // Journey intake state
+  journeyState: JourneyState
+  journeyBrief: JourneyDesignBrief | null
+
   // Core state
   mode: Mode
   activeTab: number
@@ -36,6 +45,9 @@ interface ForgeState {
 
   // Path data
   path: PathData
+
+  // Build phase tracking
+  buildJourney: BuildJourney | null
 
   // Mode-specific data
   buildData: BuildModeData | null
@@ -46,7 +58,17 @@ interface ForgeState {
   currentCode: CodeContent | null
   currentCanvas: CanvasContent | null
 
-  // Actions
+  // Journey intake actions
+  setJourneyBrief: (brief: JourneyDesignBrief) => void
+  confirmJourney: () => void
+  resetJourney: () => void
+
+  // Build phase actions
+  setBuildPhase: (phase: BuildPhase) => void
+  addGroundingConcept: (name: string, distinction: string) => void
+  markGroundingReady: () => void
+
+  // Core actions
   setMode: (mode: Mode) => void
   setActiveTab: (tab: number) => void
   selectQuestion: (questionId: string | null) => void
@@ -109,18 +131,112 @@ const initialPath: PathData = {
 // ============================================================================
 
 export const useForgeStore = create<ForgeState>((set, get) => ({
-  // Initial state
+  // Initial state - journey intake
+  journeyState: 'active', // Start as 'active' for dev; change to 'intake' for prod
+  journeyBrief: null,
+
+  // Initial state - core
   mode: 'build',
   activeTab: 0,
   selectedQuestionId: null,
   path: initialPath,
+
+  // Initial state - build phase
+  buildJourney: null,
+
+  // Initial state - mode data
   buildData: null,
   understandData: null,
   researchData: null,
   currentCode: null,
   currentCanvas: null,
 
-  // Actions
+  // Journey intake actions
+  setJourneyBrief: (brief) => {
+    set({
+      journeyBrief: brief,
+      journeyState: 'confirming',
+    })
+  },
+
+  confirmJourney: () => {
+    const { journeyBrief } = get()
+    if (!journeyBrief) return
+
+    // Set the mode from the brief and transition to active
+    const mode = journeyBrief.primaryMode
+    set({
+      journeyState: 'active',
+      mode,
+      activeTab: 0,
+    })
+    get().updateCSSVariables(mode)
+
+    // Initialize build journey if entering build mode
+    if (mode === 'build') {
+      set({
+        buildJourney: {
+          phase: 'grounding',
+          grounding: { concepts: [], ready: false },
+        },
+      })
+    }
+  },
+
+  resetJourney: () => {
+    set({
+      journeyState: 'intake',
+      journeyBrief: null,
+      buildJourney: null,
+    })
+  },
+
+  // Build phase actions
+  setBuildPhase: (phase) => {
+    const { buildJourney } = get()
+    if (!buildJourney) return
+
+    set({
+      buildJourney: { ...buildJourney, phase },
+    })
+  },
+
+  addGroundingConcept: (name, distinction) => {
+    const { buildJourney } = get()
+    if (!buildJourney) return
+
+    const newConcept: GroundingConcept = {
+      id: generateId(),
+      name,
+      distinction,
+      sufficient: false,
+    }
+
+    set({
+      buildJourney: {
+        ...buildJourney,
+        grounding: {
+          ...buildJourney.grounding,
+          concepts: [...buildJourney.grounding.concepts, newConcept],
+        },
+      },
+    })
+  },
+
+  markGroundingReady: () => {
+    const { buildJourney } = get()
+    if (!buildJourney) return
+
+    set({
+      buildJourney: {
+        ...buildJourney,
+        phase: 'making',
+        grounding: { ...buildJourney.grounding, ready: true },
+      },
+    })
+  },
+
+  // Core actions
   setMode: (mode) => {
     set({ mode, activeTab: 0, selectedQuestionId: null })
     get().updateCSSVariables(mode)
@@ -436,6 +552,14 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
 // Selector Hooks (for optimized re-renders)
 // ============================================================================
 
+// Journey intake selectors
+export const useJourneyState = () => useForgeStore((state) => state.journeyState)
+export const useJourneyBrief = () => useForgeStore((state) => state.journeyBrief)
+
+// Build phase selectors
+export const useBuildJourney = () => useForgeStore((state) => state.buildJourney)
+
+// Core selectors
 export const useMode = () => useForgeStore((state) => state.mode)
 export const useActiveTab = () => useForgeStore((state) => state.activeTab)
 export const useSelectedQuestionId = () => useForgeStore((state) => state.selectedQuestionId)
@@ -450,6 +574,15 @@ export const useCurrentCanvas = () => useForgeStore((state) => state.currentCanv
 export const useForgeActions = () =>
   useForgeStore(
     useShallow((state) => ({
+      // Journey intake
+      setJourneyBrief: state.setJourneyBrief,
+      confirmJourney: state.confirmJourney,
+      resetJourney: state.resetJourney,
+      // Build phase
+      setBuildPhase: state.setBuildPhase,
+      addGroundingConcept: state.addGroundingConcept,
+      markGroundingReady: state.markGroundingReady,
+      // Core
       setMode: state.setMode,
       setActiveTab: state.setActiveTab,
       selectQuestion: state.selectQuestion,

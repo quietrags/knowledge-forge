@@ -8,6 +8,45 @@ export type QuestionStatus = 'open' | 'investigating' | 'answered'
 
 export type SourceCredibility = 'primary' | 'high' | 'medium' | 'low'
 
+export type AnswerType = 'facts' | 'understanding' | 'skill'
+
+export type BuildPhase = 'grounding' | 'making'
+
+// ============================================================================
+// Journey Intake Types (v0.3)
+// ============================================================================
+
+export interface JourneyDesignBrief {
+  originalQuestion: string
+  idealAnswer: string
+  answerType: AnswerType
+  primaryMode: Mode
+  secondaryMode?: 'research'
+  implicitQuestion?: string
+  confirmationMessage: string
+}
+
+export type JourneyState = 'intake' | 'confirming' | 'active'
+
+// ============================================================================
+// Build Phase Types (v0.3)
+// ============================================================================
+
+export interface GroundingConcept {
+  id: string
+  name: string
+  distinction: string // "Not X, but Y"
+  sufficient: boolean
+}
+
+export interface BuildJourney {
+  phase: BuildPhase
+  grounding: {
+    concepts: GroundingConcept[]
+    ready: boolean
+  }
+}
+
 // ============================================================================
 // Path / Learning Trail
 // ============================================================================
@@ -197,10 +236,18 @@ export const MODE_TABS: Record<Mode, string[]> = {
 // ============================================================================
 
 export interface SessionState {
+  // Journey intake
+  journeyState: JourneyState
+  journeyBrief?: JourneyDesignBrief
+
+  // Active session
   mode: Mode
   activeTab: number
   selectedQuestionId: string | null
   path: PathData
+
+  // Build phase tracking
+  buildJourney?: BuildJourney
 
   // Mode-specific data
   build?: BuildModeData
