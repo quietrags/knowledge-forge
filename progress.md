@@ -368,7 +368,65 @@ docs/
 - `docs: Add complete journey examples for all three modes`
 
 ### Next Session
-1. Implement Journey Intake UI (onboarding flow before entering mode)
-2. Add Grounding Panel UI for Build Phase 1
+1. ~~Implement Journey Intake UI (onboarding flow before entering mode)~~ DONE
+2. ~~Add Grounding Panel UI for Build Phase 1~~ DONE
 3. Consider edit/delete functionality for items
 4. Plan API integration for LLM-powered content generation
+
+---
+
+## Session: 2025-12-29 (v0.3 Frontend Implementation)
+
+### Summary
+Implemented complete v0.3 Journey Intake and Build Phase system. Created 8 beads issues, all closed. Tested full flow in browser - all features working.
+
+### Work Done
+- [x] **Types**: JourneyDesignBrief, JourneyState, BuildJourney, GroundingConcept, BuildPhase
+- [x] **Store**: journeyState, journeyBrief, buildJourney state + 6 new actions
+- [x] **JourneyIntake component**: Full-screen question input with heuristic routing
+- [x] **RoutingConfirmation component**: Mode suggestion with alternatives
+- [x] **GroundingPanel component**: Build Phase 1 with concept cards
+- [x] **Header phase indicator**: Shows GROUNDING/MAKING in build mode
+- [x] **App.tsx integration**: Conditional rendering based on journeyState and buildPhase
+
+### Components Created
+```
+app/src/components/
+├── JourneyIntake/      # Question input + routing
+├── RoutingConfirmation/ # Mode confirmation + alternatives
+└── GroundingPanel/     # Build Phase 1 concepts
+```
+
+### Test Results (All Passed)
+| Feature | Status |
+|---------|--------|
+| JourneyIntake screen | ✓ |
+| Question routing heuristics | ✓ |
+| RoutingConfirmation with alternatives | ✓ |
+| Build Grounding Phase panel | ✓ |
+| Header phase indicator | ✓ |
+| Add grounding concept | ✓ |
+| Phase transition (Grounding → Making) | ✓ |
+
+### Beads Closed (8 issues)
+- knowledge-forge-5ja: JourneyDesignBrief types
+- knowledge-forge-a97: BuildJourney/GroundingConcept types
+- knowledge-forge-ldo: Journey intake store state
+- knowledge-forge-dz8: Build phase store state
+- knowledge-forge-8qa: JourneyIntake component
+- knowledge-forge-9sk: RoutingConfirmation component
+- knowledge-forge-ncl: GroundingPanel component
+- knowledge-forge-0si: Phase indicator in header
+
+### Commits
+- `feat: Implement v0.3 Journey Intake and Build Phase system`
+
+### Configuration
+- `journeyState: 'active'` for dev (skips intake)
+- Change to `journeyState: 'intake'` to enable full flow
+
+### Next Session
+1. Consider edit/delete functionality for items
+2. Plan API integration for LLM-powered content generation
+3. Add real question routing via LLM (replace heuristics)
+4. Persist journey state across sessions
