@@ -81,6 +81,91 @@ Core types in `app/src/types/index.ts`:
 - `Question`: Research mode with status, sources, sub-questions
 - `CodeContent` / `CanvasContent`: Panel content types
 
+### Backend Stack
+
+- **Python 3.12 + FastAPI** for API layer
+- **Claude Agent SDK** for mode agents
+- **SSE (Server-Sent Events)** for streaming
+- **File-based JSON** for session persistence
+
+### Mode Agents (Critical Pattern)
+
+All three mode agents use identical Claude Agent SDK patterns:
+
+```python
+from claude_agent_sdk import tool, create_sdk_mcp_server, ClaudeSDKClient
+
+# Tool definition pattern
+@tool(
+    "tool_name",
+    "Tool description",
+    {"param1": str, "param2": int}
+)
+async def tool_name(args: dict[str, Any]) -> dict[str, Any]:
+    # ... implementation
+    return {"content": [{"type": "text", "text": "Result"}]}
+
+# MCP server creation
+server = create_sdk_mcp_server(
+    name="agent-name",
+    version="1.0.0",
+    tools=[tool1, tool2, ...]
+)
+
+# Tool naming convention: mcp__<server>__<tool_name>
+allowed_tools = ["mcp__build__emit_anchor", "mcp__build__record_construction_round"]
+```
+
+**Agent Structure**:
+```
+server/agents/
+├── base.py           # BaseForgeAgent, PhaseTransition
+├── research/         # DECOMPOSE → ANSWER → RISE_ABOVE → EXPAND
+├── understand/       # SELF_ASSESS → CONFIGURE → CLASSIFY → CALIBRATE → DIAGNOSE
+└── build/            # ANCHOR_DISCOVERY → CLASSIFY → SEQUENCE_DESIGN → CONSTRUCTION
+```
+
+### Backend Commands
+
+```bash
+cd server
+uv run pytest tests/ -v    # Run all tests
+uv run pytest tests/test_build_agent.py -v  # Run specific test file
+```
+
+## Known Issues
+
+### `.gitignore` Conflict with `build/` Directory
+
+`server/.gitignore` includes `build/` for Python build artifacts, but `server/agents/build/` is a legitimate module. Use `git add -f` when adding files to this directory:
+
+```bash
+git add -f server/agents/build/
+```
+
+### Test Fixtures Must Match Pydantic Models
+
+When Pydantic models change, test fixtures must be updated. Example for `JourneyDesignBrief`:
+
+```python
+# WRONG - old fields
+JourneyDesignBrief(
+    original_question="...",
+    clarified_question="...",  # Does not exist
+    mode="build",              # Does not exist
+    scope="...",               # Does not exist
+)
+
+# CORRECT - current required fields
+JourneyDesignBrief(
+    original_question="...",
+    ideal_answer="...",
+    answer_type="understanding",
+    primary_mode="build",
+    confirmation_message="...",
+)
+```
+
 ## Related Resources
 
 ### Skill Specs (Reference)
