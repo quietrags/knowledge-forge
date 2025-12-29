@@ -627,3 +627,31 @@ Comprehensive code review of entire codebase against specs. Found and fixed XSS 
 1. Merge Phase 1 branches to main
 2. Start Phase 2: Backend Orchestrator
 3. Consider fixing minor issues (duplicate colors, env-based journey state)
+
+---
+
+## Session: 2025-12-29 (Phase 1 Merge)
+
+### Summary
+Merged all 3 Phase 1 branches to main. Resolved one merge conflict in NarrativeTab.tsx (kept DOMPurify sanitization with new Narrative.full structure). All builds pass.
+
+### Work Done
+- [x] Merged `backend-persistence` → main (10 files, 1009 lines)
+- [x] Merged `backend-api-layer` → main (8 files, 1059 lines)
+- [x] Merged `frontend-api-integration` → main (5 new + 8 modified files)
+- [x] Resolved conflict: NarrativeTab.tsx - combined DOMPurify with new Narrative type
+- [x] Verified frontend build passes
+- [x] Pushed all changes to remote
+
+### Precious Context
+- **Narrative type changed**: Old `{label, title, meta, content}` → New `{prior, delta, full}`. Components now use `narrative.full` for content and `journeyBrief.originalQuestion` for title.
+
+### Commits
+- `backend-persistence merge` - Pydantic models, file storage, session CRUD
+- `backend-api-layer merge` - FastAPI app, SSE streaming, routes
+- `ba39284` - frontend-api-integration merge with conflict resolution
+
+### Next Session
+1. Start Phase 2: Backend Orchestrator (`knowledge-forge-cm0`)
+2. Implement question routing + journey design logic
+3. Set up Python virtual environment for server development
