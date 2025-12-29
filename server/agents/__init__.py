@@ -9,6 +9,12 @@ from .base import BaseForgeAgent, PhaseTransition, BasePhaseContext
 from .research import ResearchAgent, ResearchPhase, ResearchPhaseContext
 from .understand import UnderstandAgent, UnderstandPhase, UnderstandPhaseContext
 from .build import BuildAgent, BuildPhase, BuildPhaseContext
+from .factory import (
+    create_agent,
+    get_or_create_agent,
+    save_agent_state,
+    get_agent_state_for_restore,
+)
 
 __all__ = [
     # Base
@@ -27,4 +33,9 @@ __all__ = [
     "BuildAgent",
     "BuildPhase",
     "BuildPhaseContext",
+    # Factory
+    "create_agent",
+    "get_or_create_agent",
+    "save_agent_state",
+    "get_agent_state_for_restore",
 ]

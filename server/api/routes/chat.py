@@ -7,6 +7,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
@@ -19,6 +20,8 @@ from ..streaming import (
     agent_complete,
     error_event,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -66,49 +69,73 @@ async def process_chat_message(
     """
     Process a chat message in the background.
 
-    This is where the agent logic will be invoked.
-    Currently a placeholder that echoes the message.
-
-    TODO: Integrate with Orchestrator and Mode agents.
+    This routes to the appropriate mode agent (Research, Understand, Build)
+    and streams SSE events back to the client.
     """
+    # Import here to avoid circular imports
+    from server.agents import get_or_create_agent, save_agent_state
+
     try:
         # Get session
         session = store.get(session_id)
 
-        # Emit thinking event
-        await stream_manager.emit(
-            session_id,
-            agent_thinking(f"Processing your message in {session.mode} mode..."),
+        # Validate we have a journey brief
+        if not session.journey_brief:
+            await stream_manager.emit(
+                session_id,
+                error_event(
+                    "Session has no journey brief. Please start a new journey first.",
+                    code="NO_JOURNEY_BRIEF",
+                ),
+            )
+            return
+
+        # Create emit callback for the agent
+        async def emit_event(event):
+            await stream_manager.emit(session_id, event)
+
+        # Emit initial thinking event
+        await emit_event(agent_thinking(f"Processing in {session.mode} mode..."))
+
+        # Get or create the appropriate agent
+        agent = await get_or_create_agent(
+            session=session,
+            journey_brief=session.journey_brief,
+            emit_event=emit_event,
+            checkpoint_handler=None,  # TODO: Add checkpoint support
         )
 
-        # TODO: Route to appropriate agent based on mode
-        # For now, just echo the message back
+        # Convert context to dict if provided
+        ctx = {}
+        if context:
+            if context.selected_question_id:
+                ctx["selected_question_id"] = context.selected_question_id
+            if context.active_tab is not None:
+                ctx["active_tab"] = context.active_tab
 
-        # Simulate streaming response
-        response_parts = [
-            f"I received your message: \"{message}\"\n\n",
-            f"You are currently in **{session.mode}** mode. ",
-        ]
+        # Process message through agent
+        try:
+            async for event in agent.process_message(message, ctx):
+                await emit_event(event)
+        except Exception as agent_error:
+            logger.exception(f"Agent error processing message: {agent_error}")
+            await emit_event(
+                error_event(
+                    f"Agent error: {str(agent_error)}",
+                    code="AGENT_ERROR",
+                )
+            )
+            return
 
-        if session.mode == "build" and session.phase:
-            response_parts.append(f"(Phase: {session.phase})\n\n")
-        else:
-            response_parts.append("\n\n")
+        # Save agent state back to session
+        save_agent_state(session, agent)
 
-        response_parts.append(
-            "This is a placeholder response. "
-            "The real agent integration will process your message and update the session state."
-        )
+        # Update session timestamp and save
+        from datetime import datetime
+        session.updated = datetime.utcnow()
+        store.save(session)
 
-        # Stream the response
-        for part in response_parts:
-            await stream_manager.emit(session_id, agent_speaking(part))
-
-        # Emit completion
-        await stream_manager.emit(
-            session_id,
-            agent_complete("Message processed (placeholder)"),
-        )
+        logger.info(f"Processed message for session {session_id} in {session.mode} mode")
 
     except SessionNotFoundError:
         await stream_manager.emit(
@@ -116,6 +143,7 @@ async def process_chat_message(
             error_event("Session not found", code="SESSION_NOT_FOUND"),
         )
     except Exception as e:
+        logger.exception(f"Error processing chat message: {e}")
         await stream_manager.emit(
             session_id,
             error_event(f"Error processing message: {str(e)}", code="PROCESSING_ERROR"),
