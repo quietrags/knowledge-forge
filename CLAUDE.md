@@ -120,10 +120,37 @@ allowed_tools = ["mcp__build__emit_anchor", "mcp__build__record_construction_rou
 ```
 server/agents/
 ├── base.py           # BaseForgeAgent, PhaseTransition
+├── factory.py        # create_agent, get_or_create_agent, save_agent_state
 ├── research/         # DECOMPOSE → ANSWER → RISE_ABOVE → EXPAND
 ├── understand/       # SELF_ASSESS → CONFIGURE → CLASSIFY → CALIBRATE → DIAGNOSE
 └── build/            # ANCHOR_DISCOVERY → CLASSIFY → SEQUENCE_DESIGN → CONSTRUCTION
 ```
+
+**Agent Factory Usage** (in `server/api/routes/chat.py`):
+```python
+from server.agents import get_or_create_agent, save_agent_state
+
+# Get or restore agent for session
+agent = await get_or_create_agent(
+    session=session,
+    journey_brief=session.journey_brief,
+    emit_event=emit_callback,  # async fn to emit SSE events
+)
+
+# Process message through agent's phase graph
+async for event in agent.process_message(message, context):
+    await emit_callback(event)
+
+# Save agent state back to session
+save_agent_state(session, agent)
+store.save(session)
+```
+
+**Agent State Persistence**: Agent state is stored in `session.agent_state.counters` dict with keys:
+- `current_phase`: Current phase value (e.g., "answer", "construction")
+- `agent_type`: Agent type ("research", "understand", "build")
+- `phase_context`: Phase-specific state (visit counts, triggers)
+- `transition_history`: List of phase transitions
 
 ### Backend Commands
 
@@ -134,6 +161,23 @@ uv run pytest tests/test_build_agent.py -v  # Run specific test file
 ```
 
 ## Known Issues
+
+### Circular Import with Agents
+
+Due to circular dependencies between `api/routes/chat.py` and `agents/`, the agent imports must be done inside the function:
+
+```python
+# WRONG - causes circular import
+from server.agents import get_or_create_agent, save_agent_state
+
+async def process_chat_message(...):
+    ...
+
+# CORRECT - import inside function
+async def process_chat_message(...):
+    from server.agents import get_or_create_agent, save_agent_state
+    ...
+```
 
 ### `.gitignore` Conflict with `build/` Directory
 

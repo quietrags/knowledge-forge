@@ -792,6 +792,53 @@ server/tests/
 - `a29c676` - feat: Implement Build Agent (Constructivist Tutoring System)
 
 ### Next Session
-1. Integrate agents with orchestrator (wire up mode agents to API routes)
+1. ~~Integrate agents with orchestrator (wire up mode agents to API routes)~~ DONE
 2. Test end-to-end flow: question → routing → agent → SSE streaming → UI
 3. Consider removing `build/` from server/.gitignore or renaming agent folder
+
+---
+
+## Session: 2025-12-29 (Agent Integration with API)
+
+### Summary
+Integrated all three mode agents with the chat API. Created AgentFactory module for agent creation, initialization, state persistence, and restoration. All 150 tests pass.
+
+### Work Done
+- [x] **AgentFactory module** (`server/agents/factory.py`):
+  - `create_agent(session, emit_event)` — instantiates correct agent by mode
+  - `get_or_create_agent(session, brief, emit_event)` — initializes or restores agent
+  - `save_agent_state(session, agent)` — persists agent state to session
+  - `get_agent_state_for_restore(session)` — extracts state for restoration
+- [x] **Updated chat.py** to route messages to mode agents instead of placeholder
+- [x] **Fixed circular import** — moved agent imports inside function
+- [x] **Wrote 10 integration tests** for agent factory
+- [x] **Updated CLAUDE.md** with Agent Factory usage and circular import pattern
+
+### Decisions
+- **Agent state in counters**: Store agent phase state in `session.agent_state.counters` dict for flexibility
+- **Lazy import pattern**: Import agents inside function to break circular dependency chain
+
+### Learnings
+- **Circular import chain**: `chat.py → agents → base.py → api.streaming → api/__init__ → main.py → routes → chat.py`. Fixed with lazy import.
+- **Phase values are lowercase**: Research phases are "decompose", "answer", not "DECOMPOSE", "ANSWER"
+
+### Key Artifacts
+```
+server/agents/
+├── factory.py                # NEW — Agent creation and persistence
+└── __init__.py              # Updated exports
+
+server/api/routes/
+└── chat.py                  # Updated — Uses agent factory
+
+server/tests/
+└── test_agent_factory.py    # NEW — 10 integration tests
+```
+
+### Commits
+- `74277d5` - feat: Integrate mode agents with chat API
+
+### Next Session
+1. Test end-to-end flow: start server, send question, verify SSE events
+2. Add checkpoint support (blocking approvals during agent execution)
+3. Consider UI updates to show agent phase status
