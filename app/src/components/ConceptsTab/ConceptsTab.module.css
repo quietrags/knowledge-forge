@@ -1,0 +1,133 @@
+.container {
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.concepts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.concept {
+  padding: 20px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.concept:hover {
+  border-color: var(--accent);
+}
+
+.concept.threshold {
+  background: linear-gradient(135deg, var(--accent-bg) 0%, var(--panel-bg) 100%);
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+.conceptHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.conceptIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.conceptName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.thresholdBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.definition {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 14px 0;
+}
+
+.distinction {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.distinctionLabel {
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.distinctionText {
+  color: var(--text);
+  font-style: italic;
+}
+
+.source {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sourceLabel {
+  font-weight: 500;
+}
+
+.sourceText {
+  font-style: italic;
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}

@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react'
 import { useResearchData, useSelectedQuestionId, useForgeActions } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
-import type { Category, Question } from '../../types'
+import type { CategoryQuestion, Question } from '../../types'
 import styles from './QuestionTree.module.css'
 
-// Status icons
+// Status icons - updated to match new QuestionStatus
 const STATUS_ICONS = {
   answered: '✓',
-  researching: '◐',
-  pending: '○',
+  investigating: '◐',
+  open: '○',
 }
 
 // Source credibility badge
@@ -20,16 +20,6 @@ function SourceBadge({ credibility }: { credibility: string }) {
   )
 }
 
-// Sub-question item
-function SubQuestionItem({ subQuestion }: { subQuestion: { id: string; question: string; status: string } }) {
-  return (
-    <div className={`${styles.subQuestion} ${styles[subQuestion.status]}`}>
-      <span className={styles.subQuestionArrow}>↳</span>
-      <span>{subQuestion.question}</span>
-    </div>
-  )
-}
-
 // Question item
 function QuestionItem({
   question,
@@ -37,19 +27,17 @@ function QuestionItem({
   isSelected,
   onToggle,
   onSelect,
-  onAddSubQuestion,
 }: {
   question: Question
   isExpanded: boolean
   isSelected: boolean
   onToggle: () => void
   onSelect: () => void
-  onAddSubQuestion: (text: string) => void
 }) {
   const handleHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onToggle()
-    onSelect() // Also select when clicking header
+    onSelect()
   }
 
   const handleCardClick = () => {
@@ -79,7 +67,9 @@ function QuestionItem({
               <div className={styles.answerText}>{question.answer}</div>
             </div>
           ) : (
-            <div className={styles.researching}>Researching...</div>
+            <div className={styles.researching}>
+              {question.status === 'investigating' ? 'Investigating...' : 'Not yet started'}
+            </div>
           )}
 
           {question.sources.length > 0 && (
@@ -101,52 +91,45 @@ function QuestionItem({
               </div>
             </div>
           )}
-
-          <div className={styles.subQuestions}>
-            <div className={styles.subQuestionsLabel}>Sub-questions</div>
-            {question.subQuestions.map((sq) => (
-              <SubQuestionItem key={sq.id} subQuestion={sq} />
-            ))}
-            <InlineAdd
-              placeholder="Enter sub-question..."
-              buttonText="+ Add sub-question"
-              onAdd={onAddSubQuestion}
-            />
-          </div>
         </div>
       )}
     </div>
   )
 }
 
-// Category section
+// Category section - now uses CategoryQuestion and fetches questions by ID
 function CategorySection({
   category,
+  questions,
   expandedIds,
   selectedId,
   onToggle,
   onSelect,
   onAddQuestion,
-  onAddSubQuestion,
 }: {
-  category: Category
+  category: CategoryQuestion
+  questions: Question[]
   expandedIds: Set<string>
   selectedId: string | null
   onToggle: (id: string) => void
   onSelect: (id: string) => void
   onAddQuestion: (categoryId: string, text: string) => void
-  onAddSubQuestion: (questionId: string, text: string) => void
 }) {
   return (
     <div className={styles.category}>
       <div className={styles.categoryHeader}>
         <div className={styles.categoryTitle}>
           <span className={styles.categoryIcon}>📂</span>
-          {category.name}
+          {category.category}
         </div>
+        {category.insight && (
+          <div className={styles.categoryInsight}>
+            <span className={styles.insightLabel}>Insight:</span> {category.insight}
+          </div>
+        )}
       </div>
       <div className={styles.questionList}>
-        {category.questions.map((question) => (
+        {questions.map((question) => (
           <QuestionItem
             key={question.id}
             question={question}
@@ -154,7 +137,6 @@ function CategorySection({
             isSelected={selectedId === question.id}
             onToggle={() => onToggle(question.id)}
             onSelect={() => onSelect(question.id)}
-            onAddSubQuestion={(text) => onAddSubQuestion(question.id, text)}
           />
         ))}
         <InlineAdd
@@ -171,7 +153,7 @@ function CategorySection({
 export function QuestionTree() {
   const researchData = useResearchData()
   const selectedQuestionId = useSelectedQuestionId()
-  const { selectQuestion, addQuestion, addSubQuestion, addCategory } = useForgeActions()
+  const { selectQuestion, addQuestion, addCategory } = useForgeActions()
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const handleToggle = useCallback((id: string) => {
@@ -189,7 +171,6 @@ export function QuestionTree() {
   const handleSelect = useCallback(
     (id: string) => {
       selectQuestion(id)
-      // Also expand if not already
       setExpandedIds((prev) => {
         if (prev.has(id)) return prev
         return new Set([...prev, id])
@@ -203,13 +184,6 @@ export function QuestionTree() {
       addQuestion(categoryId, text)
     },
     [addQuestion]
-  )
-
-  const handleAddSubQuestion = useCallback(
-    (questionId: string, text: string) => {
-      addSubQuestion(questionId, text)
-    },
-    [addSubQuestion]
   )
 
   const handleAddCategory = useCallback(
@@ -227,6 +201,11 @@ export function QuestionTree() {
     )
   }
 
+  // Helper to get questions for a category
+  const getQuestionsForCategory = (categoryId: string): Question[] => {
+    return researchData.questions.filter((q) => q.categoryId === categoryId)
+  }
+
   return (
     <div className={styles.tree}>
       <div className={styles.header}>
@@ -240,12 +219,12 @@ export function QuestionTree() {
           <CategorySection
             key={category.id}
             category={category}
+            questions={getQuestionsForCategory(category.id)}
             expandedIds={expandedIds}
             selectedId={selectedQuestionId}
             onToggle={handleToggle}
             onSelect={handleSelect}
             onAddQuestion={handleAddQuestion}
-            onAddSubQuestion={handleAddSubQuestion}
           />
         ))}
         <InlineAdd

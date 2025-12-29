@@ -4,7 +4,7 @@
 
 export type Mode = 'build' | 'understand' | 'research'
 
-export type QuestionStatus = 'answered' | 'researching' | 'pending'
+export type QuestionStatus = 'open' | 'investigating' | 'answered'
 
 export type SourceCredibility = 'primary' | 'high' | 'medium' | 'low'
 
@@ -24,7 +24,7 @@ export interface PathData {
 }
 
 // ============================================================================
-// Research Mode Types
+// Research Mode Types (v0.2)
 // ============================================================================
 
 export interface Source {
@@ -33,53 +33,48 @@ export interface Source {
   credibility: SourceCredibility
 }
 
-export interface SubQuestion {
-  id: string
-  question: string
-  status: QuestionStatus
-  answer?: string
-}
-
 export interface Question {
   id: string
   question: string
   status: QuestionStatus
   answer?: string
   sources: Source[]
-  subQuestions: SubQuestion[]
+  categoryId?: string
   code?: CodeContent
   canvas?: CanvasContent
 }
 
-export interface Category {
+export interface CategoryQuestion {
   id: string
-  name: string
-  questions: Question[]
+  category: string
+  insight?: string // "rise above" synthesis
+  questionIds: string[]
 }
 
-export interface KeyIdea {
+export interface KeyInsight {
   id: string
   title: string
   description: string
   relevance: string // Which questions this helps answer
 }
 
-export interface EmergentQuestion {
+export interface AdjacentQuestion {
   id: string
   question: string
-  sourceCategory: string // Which category this emerged from
+  discoveredFrom: string // Which question spawned this
 }
 
 export interface ResearchModeData {
   topic: string
   meta: string
-  categories: Category[]
-  keyIdeas: KeyIdea[]
-  emergentQuestions: EmergentQuestion[]
+  categories: CategoryQuestion[]
+  questions: Question[]
+  keyInsights: KeyInsight[]
+  adjacentQuestions: AdjacentQuestion[]
 }
 
 // ============================================================================
-// Build Mode Types
+// Build Mode Types (v0.2)
 // ============================================================================
 
 export interface Narrative {
@@ -89,55 +84,69 @@ export interface Narrative {
   content: string // HTML/Markdown content
 }
 
-export interface Component {
+export interface Construct {
   id: string
   name: string
   description: string
-  usage: string // How it's used in the build
+  usage: string
+  code?: string
 }
 
 export interface Decision {
   id: string
-  choice: string // What was chosen
-  alternative: string // What was not chosen
-  rationale: string // Why this choice
+  choice: string
+  alternative: string
+  rationale: string
+  constructIds: string[]
+  producesId?: string
 }
 
 export interface Capability {
   id: string
-  capability: string // What you can now do/build
-  enabledBy: string // What knowledge enables this
+  capability: string
+  enabledBy: string[]
 }
 
 export interface BuildModeData {
   narrative: Narrative
-  components: Component[]
+  constructs: Construct[]
   decisions: Decision[]
   capabilities: Capability[]
 }
 
 // ============================================================================
-// Understand Mode Types
+// Understand Mode Types (v0.2)
 // ============================================================================
-
-export interface Distinction {
-  id: string
-  itemA: string // First thing being distinguished
-  itemB: string // Second thing being distinguished
-  difference: string // The key difference
-}
 
 export interface Assumption {
   id: string
-  assumption: string // What was assumed
-  surfaced: string // What you now realize/understand
+  assumption: string
+  surfaced: string
+  status: 'active' | 'discarded'
+}
+
+export interface Concept {
+  id: string
+  name: string
+  definition: string
+  distinguishedFrom?: string
+  isThreshold: boolean
+  fromAssumptionId?: string
+}
+
+export interface Model {
+  id: string
+  name: string
+  description: string
+  conceptIds: string[]
+  visualization?: string
 }
 
 export interface UnderstandModeData {
-  essay: Narrative // The analysis journey
-  distinctions: Distinction[]
+  essay: Narrative
   assumptions: Assumption[]
-  mentalModel: string // HTML/Markdown content
+  concepts: Concept[]
+  models: Model[]
 }
 
 // ============================================================================
@@ -151,14 +160,14 @@ export interface LibraryRef {
 
 export interface CodeContent {
   file: string
-  content: string // Syntax-highlighted HTML or raw code
+  content: string
   language?: string
   library?: LibraryRef
 }
 
 export interface CanvasContent {
-  summary?: string // HTML content
-  diagram?: string // HTML/SVG content
+  summary?: string
+  diagram?: string
 }
 
 // ============================================================================
@@ -177,9 +186,9 @@ export const MODE_COLORS: Record<Mode, ModeColors> = {
 }
 
 export const MODE_TABS: Record<Mode, string[]> = {
-  build: ['Build Narrative', 'Components', 'Decisions', 'Capabilities'],
-  understand: ['Analysis Essay', 'Distinctions', 'Assumptions', 'Mental Model'],
-  research: ['Question Tree', 'Key Ideas', 'Emergent Questions'],
+  build: ['Build Narrative', 'Constructs', 'Decisions', 'Capabilities'],
+  understand: ['Analysis Essay', 'Assumptions', 'Concepts', 'Model'],
+  research: ['Questions', 'Key Insights', 'Frontier'],
 }
 
 // ============================================================================

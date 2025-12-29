@@ -5,19 +5,19 @@ export { CanvasPanel } from './CanvasPanel/CanvasPanel'
 export { QuestionTree } from './QuestionTree/QuestionTree'
 
 // Research Mode Tabs
-export { KeyIdeasTab } from './KeyIdeasTab/KeyIdeasTab'
-export { EmergentQuestionsTab } from './EmergentQuestionsTab/EmergentQuestionsTab'
+export { KeyInsightsTab } from './KeyInsightsTab/KeyInsightsTab'
+export { FrontierTab } from './FrontierTab/FrontierTab'
 
 // Build Mode Tabs
 export { NarrativeTab } from './NarrativeTab/NarrativeTab'
-export { ComponentsTab } from './ComponentsTab/ComponentsTab'
+export { ConstructsTab } from './ConstructsTab/ConstructsTab'
 export { DecisionsTab } from './DecisionsTab/DecisionsTab'
 export { CapabilitiesTab } from './CapabilitiesTab/CapabilitiesTab'
 
 // Understand Mode Tabs
-export { DistinctionsTab } from './DistinctionsTab/DistinctionsTab'
 export { AssumptionsTab } from './AssumptionsTab/AssumptionsTab'
-export { MentalModelTab } from './MentalModelTab/MentalModelTab'
+export { ConceptsTab } from './ConceptsTab/ConceptsTab'
+export { ModelTab } from './ModelTab/ModelTab'
 
 // Shared Components
 export { ChatInput } from './ChatInput/ChatInput'

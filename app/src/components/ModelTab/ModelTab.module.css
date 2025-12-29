@@ -22,77 +22,89 @@
   font-family: var(--font-display);
 }
 
-.header .description {
+.description {
   margin-top: 8px;
   font-size: 14px;
   color: var(--text-muted);
   line-height: 1.5;
 }
 
-.components {
+.models {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.component {
-  padding: 20px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: border-color 0.15s ease;
+.model {
+  padding: 24px;
+  background: linear-gradient(135deg, var(--accent-bg) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
 }
 
-.component:hover {
-  border-color: var(--accent);
-}
-
-.componentHeader {
+.modelHeader {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-.icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-radius: 6px;
-  font-size: 14px;
+.modelIcon {
+  font-size: 24px;
   flex-shrink: 0;
 }
 
-.name {
-  font-size: 15px;
+.modelName {
+  font-size: 18px;
   font-weight: 600;
   color: var(--text);
-  line-height: 1.4;
 }
 
-.description {
-  font-size: 14px;
-  line-height: 1.6;
+.modelDescription {
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--text);
-  margin-bottom: 12px;
+  margin: 0 0 16px 0;
 }
 
-.usage {
+.concepts {
+  display: flex;
+  gap: 8px;
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-muted);
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.conceptsLabel {
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.conceptsList {
+  color: var(--text);
+}
+
+.visualization {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
   padding: 10px 12px;
   background: var(--bg);
   border-radius: 6px;
 }
 
-.usageLabel {
+.vizLabel {
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vizText {
+  color: var(--text);
+  font-style: italic;
 }
 
 .empty {

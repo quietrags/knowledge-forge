@@ -29,75 +29,64 @@
   line-height: 1.5;
 }
 
-.distinctions {
+.insights {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.distinction {
+.insight {
+  display: flex;
+  gap: 16px;
   padding: 20px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
+  background: var(--accent-bg);
   border-radius: 10px;
+  border: 1px solid transparent;
   transition: border-color 0.15s ease;
 }
 
-.distinction:hover {
+.insight:hover {
   border-color: var(--accent);
 }
 
-.versus {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.itemA,
-.itemB {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  padding: 6px 12px;
-  background: var(--accent-bg);
-  border-radius: 6px;
-}
-
-.vs {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-}
-
-.difference {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  background: var(--bg);
-  border-radius: 8px;
-  border-left: 3px solid var(--accent);
-}
-
-.diffIcon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  font-size: 14px;
+.insightIcon {
+  font-size: 24px;
   flex-shrink: 0;
 }
 
-.diffText {
+.insightContent {
+  flex: 1;
+}
+
+.insightTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text);
+}
+
+.insightDescription {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text);
+  margin: 0 0 12px 0;
+}
+
+.relevance {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.relevanceLabel {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.relevanceText {
+  color: var(--accent);
+  font-style: italic;
 }
 
 .empty {

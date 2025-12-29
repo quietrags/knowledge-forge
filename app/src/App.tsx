@@ -7,15 +7,15 @@ import {
   CodePanel,
   CanvasPanel,
   QuestionTree,
-  KeyIdeasTab,
-  EmergentQuestionsTab,
+  KeyInsightsTab,
+  FrontierTab,
   NarrativeTab,
-  ComponentsTab,
+  ConstructsTab,
   DecisionsTab,
   CapabilitiesTab,
-  DistinctionsTab,
   AssumptionsTab,
-  MentalModelTab,
+  ConceptsTab,
+  ModelTab,
   ChatInput,
 } from './components'
 import { MODE_TABS } from './types'
@@ -66,27 +66,27 @@ function App() {
 
   // Render content based on mode and active tab
   const renderContent = () => {
-    // Research Mode
+    // Research Mode: Questions, Key Insights, Frontier
     if (mode === 'research') {
       switch (activeTab) {
         case 0:
           return <QuestionTree />
         case 1:
-          return <KeyIdeasTab />
+          return <KeyInsightsTab />
         case 2:
-          return <EmergentQuestionsTab />
+          return <FrontierTab />
         default:
           return <QuestionTree />
       }
     }
 
-    // Build Mode
+    // Build Mode: Build Narrative, Constructs, Decisions, Capabilities
     if (mode === 'build') {
       switch (activeTab) {
         case 0:
           return <NarrativeTab />
         case 1:
-          return <ComponentsTab />
+          return <ConstructsTab />
         case 2:
           return <DecisionsTab />
         case 3:
@@ -96,17 +96,17 @@ function App() {
       }
     }
 
-    // Understand Mode
+    // Understand Mode: Analysis Essay, Assumptions, Concepts, Model
     if (mode === 'understand') {
       switch (activeTab) {
         case 0:
           return <NarrativeTab />
         case 1:
-          return <DistinctionsTab />
-        case 2:
           return <AssumptionsTab />
+        case 2:
+          return <ConceptsTab />
         case 3:
-          return <MentalModelTab />
+          return <ModelTab />
         default:
           return <NarrativeTab />
       }

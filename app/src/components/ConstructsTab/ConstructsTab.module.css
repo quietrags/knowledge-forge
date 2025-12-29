@@ -22,88 +22,76 @@
   font-family: var(--font-display);
 }
 
-.description {
+.header .description {
   margin-top: 8px;
   font-size: 14px;
   color: var(--text-muted);
   line-height: 1.5;
 }
 
-.ideas {
+.constructs {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.idea {
-  display: flex;
-  gap: 16px;
+.construct {
   padding: 20px;
-  background: var(--accent-bg);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  border: 1px solid transparent;
   transition: border-color 0.15s ease;
 }
 
-.idea:hover {
+.construct:hover {
   border-color: var(--accent);
 }
 
-.ideaIcon {
-  font-size: 24px;
+.constructHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
-.ideaContent {
-  flex: 1;
-}
-
-.ideaTitle {
-  font-size: 16px;
+.name {
+  font-size: 15px;
   font-weight: 600;
-  margin: 0 0 8px 0;
   color: var(--text);
+  line-height: 1.4;
 }
 
-.ideaDescription {
+.description {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text);
-  margin: 0 0 12px 0;
+  margin-bottom: 12px;
 }
 
-.relevance {
-  display: flex;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.relevanceLabel {
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.relevanceText {
-  color: var(--accent);
-  font-style: italic;
-}
-
-.addBtn {
-  margin-top: 16px;
-  padding: 10px 16px;
-  border: 1px dashed var(--border);
-  background: transparent;
-  border-radius: 8px;
-  color: var(--text-muted);
+.usage {
   font-size: 13px;
-  cursor: pointer;
-  width: 100%;
-  transition: all 0.15s ease;
+  line-height: 1.5;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 6px;
 }
 
-.addBtn:hover {
-  border-color: var(--accent);
+.usageLabel {
+  font-weight: 600;
   color: var(--accent);
 }
 

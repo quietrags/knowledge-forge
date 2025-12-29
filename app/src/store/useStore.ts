@@ -9,13 +9,14 @@ import type {
   CodeContent,
   CanvasContent,
   Question,
-  Category,
-  KeyIdea,
-  EmergentQuestion,
-  Component,
+  CategoryQuestion,
+  KeyInsight,
+  AdjacentQuestion,
+  Construct,
   Decision,
   Capability,
-  Distinction,
+  Concept,
+  Model,
   Assumption,
   MODE_COLORS,
 } from '../types'
@@ -62,20 +63,22 @@ interface ForgeState {
 
   // Research Mode CRUD
   addQuestion: (categoryId: string, questionText: string) => void
-  addSubQuestion: (questionId: string, subQuestionText: string) => void
   addCategory: (categoryName: string) => void
-  addKeyIdea: (title: string, description: string) => void
-  addEmergentQuestion: (question: string, sourceCategory: string) => void
-  promoteEmergentQuestion: (emergentQuestionId: string, targetCategoryId: string) => void
+  addKeyInsight: (title: string, description: string) => void
+  addAdjacentQuestion: (question: string, discoveredFrom: string) => void
+  promoteAdjacentQuestion: (adjacentQuestionId: string, targetCategoryId: string) => void
+  addCategoryInsight: (categoryId: string, insight: string) => void
 
   // Build Mode CRUD
-  addComponent: (name: string, description: string) => void
+  addConstruct: (name: string, description: string) => void
   addDecision: (choice: string, alternative: string) => void
   addCapability: (capability: string, enabledBy: string) => void
 
   // Understand Mode CRUD
-  addDistinction: (itemA: string, itemB: string) => void
   addAssumption: (assumption: string, surfaced: string) => void
+  discardAssumption: (assumptionId: string) => void
+  addConcept: (name: string, definition: string) => void
+  addModel: (name: string, description: string) => void
 }
 
 // ============================================================================
@@ -154,11 +157,7 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     const { selectedQuestionId, researchData } = get()
     if (!selectedQuestionId || !researchData) return null
 
-    for (const category of researchData.categories) {
-      const question = category.questions.find((q) => q.id === selectedQuestionId)
-      if (question) return question
-    }
-    return null
+    return researchData.questions.find((q) => q.id === selectedQuestionId) || null
   },
 
   updateCSSVariables: (mode) => {
@@ -175,44 +174,26 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     const newQuestion: Question = {
       id: generateId(),
       question: questionText,
-      status: 'pending',
+      status: 'open',
       sources: [],
-      subQuestions: [],
+      categoryId,
     }
 
-    set({
-      researchData: {
-        ...researchData,
-        categories: researchData.categories.map((cat) =>
-          cat.id === categoryId
-            ? { ...cat, questions: [...cat.questions, newQuestion] }
-            : cat
-        ),
-      },
-    })
-  },
+    // Add question to questions array
+    const updatedQuestions = [...researchData.questions, newQuestion]
 
-  addSubQuestion: (questionId, subQuestionText) => {
-    const { researchData } = get()
-    if (!researchData) return
+    // Update category's questionIds
+    const updatedCategories = researchData.categories.map((cat) =>
+      cat.id === categoryId
+        ? { ...cat, questionIds: [...cat.questionIds, newQuestion.id] }
+        : cat
+    )
 
     set({
       researchData: {
         ...researchData,
-        categories: researchData.categories.map((cat) => ({
-          ...cat,
-          questions: cat.questions.map((q) =>
-            q.id === questionId
-              ? {
-                  ...q,
-                  subQuestions: [
-                    ...q.subQuestions,
-                    { id: generateId(), question: subQuestionText, status: 'pending' as const },
-                  ],
-                }
-              : q
-          ),
-        })),
+        questions: updatedQuestions,
+        categories: updatedCategories,
       },
     })
   },
@@ -221,10 +202,10 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     const { researchData } = get()
     if (!researchData) return
 
-    const newCategory: Category = {
+    const newCategory: CategoryQuestion = {
       id: generateId(),
-      name: categoryName,
-      questions: [],
+      category: categoryName,
+      questionIds: [],
     }
 
     set({
@@ -235,11 +216,11 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     })
   },
 
-  addKeyIdea: (title, description) => {
+  addKeyInsight: (title, description) => {
     const { researchData } = get()
     if (!researchData) return
 
-    const newKeyIdea: KeyIdea = {
+    const newKeyInsight: KeyInsight = {
       id: generateId(),
       title,
       description,
@@ -249,75 +230,93 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     set({
       researchData: {
         ...researchData,
-        keyIdeas: [...researchData.keyIdeas, newKeyIdea],
+        keyInsights: [...researchData.keyInsights, newKeyInsight],
       },
     })
   },
 
-  addEmergentQuestion: (question, sourceCategory) => {
+  addAdjacentQuestion: (question, discoveredFrom) => {
     const { researchData } = get()
     if (!researchData) return
 
-    const newEmergent: EmergentQuestion = {
+    const newAdjacent: AdjacentQuestion = {
       id: generateId(),
       question,
-      sourceCategory,
+      discoveredFrom,
     }
 
     set({
       researchData: {
         ...researchData,
-        emergentQuestions: [...researchData.emergentQuestions, newEmergent],
+        adjacentQuestions: [...researchData.adjacentQuestions, newAdjacent],
       },
     })
   },
 
-  promoteEmergentQuestion: (emergentQuestionId, targetCategoryId) => {
+  promoteAdjacentQuestion: (adjacentQuestionId, targetCategoryId) => {
     const { researchData } = get()
     if (!researchData) return
 
-    const emergent = researchData.emergentQuestions.find((eq) => eq.id === emergentQuestionId)
-    if (!emergent) return
+    const adjacent = researchData.adjacentQuestions.find((aq) => aq.id === adjacentQuestionId)
+    if (!adjacent) return
 
     const newQuestion: Question = {
       id: generateId(),
-      question: emergent.question,
-      status: 'pending',
+      question: adjacent.question,
+      status: 'open',
       sources: [],
-      subQuestions: [],
+      categoryId: targetCategoryId,
     }
+
+    // Update categories to include new question ID
+    const updatedCategories = researchData.categories.map((cat) =>
+      cat.id === targetCategoryId
+        ? { ...cat, questionIds: [...cat.questionIds, newQuestion.id] }
+        : cat
+    )
+
+    set({
+      researchData: {
+        ...researchData,
+        questions: [...researchData.questions, newQuestion],
+        categories: updatedCategories,
+        adjacentQuestions: researchData.adjacentQuestions.filter(
+          (aq) => aq.id !== adjacentQuestionId
+        ),
+      },
+    })
+  },
+
+  addCategoryInsight: (categoryId, insight) => {
+    const { researchData } = get()
+    if (!researchData) return
 
     set({
       researchData: {
         ...researchData,
         categories: researchData.categories.map((cat) =>
-          cat.id === targetCategoryId
-            ? { ...cat, questions: [...cat.questions, newQuestion] }
-            : cat
-        ),
-        emergentQuestions: researchData.emergentQuestions.filter(
-          (eq) => eq.id !== emergentQuestionId
+          cat.id === categoryId ? { ...cat, insight } : cat
         ),
       },
     })
   },
 
   // Build Mode CRUD
-  addComponent: (name, description) => {
+  addConstruct: (name, description) => {
     const { buildData } = get()
     if (!buildData) return
 
-    const newComponent: Component = {
+    const newConstruct: Construct = {
       id: generateId(),
       name,
       description,
-      usage: '', // Can be filled in later
+      usage: '',
     }
 
     set({
       buildData: {
         ...buildData,
-        components: [...buildData.components, newComponent],
+        constructs: [...buildData.constructs, newConstruct],
       },
     })
   },
@@ -330,7 +329,8 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
       id: generateId(),
       choice,
       alternative,
-      rationale: '', // Can be filled in later
+      rationale: '',
+      constructIds: [],
     }
 
     set({
@@ -348,7 +348,7 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
     const newCapability: Capability = {
       id: generateId(),
       capability,
-      enabledBy,
+      enabledBy: enabledBy ? [enabledBy] : [],
     }
 
     set({
@@ -360,25 +360,6 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
   },
 
   // Understand Mode CRUD
-  addDistinction: (itemA, itemB) => {
-    const { understandData } = get()
-    if (!understandData) return
-
-    const newDistinction: Distinction = {
-      id: generateId(),
-      itemA,
-      itemB,
-      difference: '', // Can be filled in later via research
-    }
-
-    set({
-      understandData: {
-        ...understandData,
-        distinctions: [...understandData.distinctions, newDistinction],
-      },
-    })
-  },
-
   addAssumption: (assumption, surfaced) => {
     const { understandData } = get()
     if (!understandData) return
@@ -387,12 +368,65 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
       id: generateId(),
       assumption,
       surfaced,
+      status: 'active',
     }
 
     set({
       understandData: {
         ...understandData,
         assumptions: [...understandData.assumptions, newAssumption],
+      },
+    })
+  },
+
+  discardAssumption: (assumptionId) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    set({
+      understandData: {
+        ...understandData,
+        assumptions: understandData.assumptions.map((a) =>
+          a.id === assumptionId ? { ...a, status: 'discarded' as const } : a
+        ),
+      },
+    })
+  },
+
+  addConcept: (name, definition) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newConcept: Concept = {
+      id: generateId(),
+      name,
+      definition,
+      isThreshold: false,
+    }
+
+    set({
+      understandData: {
+        ...understandData,
+        concepts: [...understandData.concepts, newConcept],
+      },
+    })
+  },
+
+  addModel: (name, description) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newModel: Model = {
+      id: generateId(),
+      name,
+      description,
+      conceptIds: [],
+    }
+
+    set({
+      understandData: {
+        ...understandData,
+        models: [...understandData.models, newModel],
       },
     })
   },
@@ -427,17 +461,19 @@ export const useForgeActions = () =>
       setCurrentCanvas: state.setCurrentCanvas,
       // Research CRUD
       addQuestion: state.addQuestion,
-      addSubQuestion: state.addSubQuestion,
       addCategory: state.addCategory,
-      addKeyIdea: state.addKeyIdea,
-      addEmergentQuestion: state.addEmergentQuestion,
-      promoteEmergentQuestion: state.promoteEmergentQuestion,
+      addKeyInsight: state.addKeyInsight,
+      addAdjacentQuestion: state.addAdjacentQuestion,
+      promoteAdjacentQuestion: state.promoteAdjacentQuestion,
+      addCategoryInsight: state.addCategoryInsight,
       // Build CRUD
-      addComponent: state.addComponent,
+      addConstruct: state.addConstruct,
       addDecision: state.addDecision,
       addCapability: state.addCapability,
       // Understand CRUD
-      addDistinction: state.addDistinction,
       addAssumption: state.addAssumption,
+      discardAssumption: state.discardAssumption,
+      addConcept: state.addConcept,
+      addModel: state.addModel,
     }))
   )
