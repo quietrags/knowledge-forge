@@ -103,3 +103,7 @@ class FileBackend:
     def session_exists(self, session_id: str) -> bool:
         """Check if a session exists."""
         return self._session_path(session_id).exists()
+
+    def get_session_path(self, session_id: str) -> Path:
+        """Get the file path for a session (public accessor)."""
+        return self._session_path(session_id)
