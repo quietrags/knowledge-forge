@@ -321,3 +321,54 @@ Redesigned the Build and Understand mode conceptual frameworks based on user fee
 1. Re-plan remaining features with user
 2. Consider adding edit/delete functionality for items
 3. Plan API integration for LLM-powered content generation
+
+---
+
+## Session: 2025-12-29 (v0.3 — Journey Intake & Examples)
+
+### Summary
+Major conceptual framework update to v0.3. Added Journey Intake routing mechanism, clarified Build as layered meta-outcome requiring understanding, and documented complete journey examples for all three modes.
+
+### Decisions
+- **Journey Intake has two mechanisms**: Quick Route (question shape parsing) + Work Backwards (ideal answer design)
+- **Build = Grounding + Making**: Build always requires understanding first; grounding phase provides minimal conceptual foundation before making phase
+- **Research can be primary**: Not just supporting tool—can be destination for fact-finding questions
+- **Flat question structure**: Questions have categoryId instead of being nested; CategoryQuestion tracks insight synthesis
+- **Renamed concepts**: EmergentQuestions → AdjacentQuestions (frontier), Category → CategoryQuestion, Components → Constructs
+
+### Work Done
+- [x] Updated types for v0.2 (CategoryQuestion, Question with categoryId, AdjacentQuestion)
+- [x] Fixed QuestionTree for flat structure (removed subQuestions, updated status icons)
+- [x] Added Research Essay tab (NarrativeTab now handles all 3 modes)
+- [x] Updated spec.md to v0.3 with Journey Intake, layered model, Build phases
+- [x] Updated design.md to v0.3 with intake flow wireframes, grounding panel
+- [x] Updated tech-stack.md to v0.3 with JourneyDesignBrief, BuildJourney interfaces
+- [x] Created docs/examples.md with complete journey walkthroughs for all 3 modes
+
+### Key Artifacts
+```
+docs/
+├── spec.md          # v0.3 — Journey Intake, layered model
+├── design.md        # v0.3 — Intake flow, grounding panel wireframes
+├── tech-stack.md    # v0.3 — New interfaces
+└── examples.md      # NEW — Complete journey examples (1080 lines)
+```
+
+### Learnings
+- **Question shape heuristics**: "How do I" → Build, "Why does" → Understand, "What is" → Research
+- **Misalignment detection**: User says "understand" but wants skill = route to Build with confirmation
+- **Grounding is minimal understanding**: Just enough concepts/assumptions to make informed build decisions
+
+### Commits
+- `feat: Update frontend to v0.2 pedagogical framework`
+- `feat: Add Research Essay tab for synthesis narrative`
+- `docs: Add Journey Intake routing mechanism (v0.3)`
+- `docs: Clarify Build as layered meta-outcome requiring understanding`
+- `docs: Sync design.md and tech-stack.md with v0.3 spec`
+- `docs: Add complete journey examples for all three modes`
+
+### Next Session
+1. Implement Journey Intake UI (onboarding flow before entering mode)
+2. Add Grounding Panel UI for Build Phase 1
+3. Consider edit/delete functionality for items
+4. Plan API integration for LLM-powered content generation
