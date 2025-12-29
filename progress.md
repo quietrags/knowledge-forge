@@ -723,3 +723,75 @@ Ran comprehensive code review with 5 parallel agents. Found 4 issues, all scored
 1. Start implementing Research Agent (`knowledge-forge-7x2`)
 2. Implement DECOMPOSE, ANSWER, RISE ABOVE, EXPAND phases
 3. Integrate Claude web search for sourced answers
+
+---
+
+## Session: 2025-12-29 (All Three Mode Agents Complete)
+
+### Summary
+Completed all three mode agents (Research, Understand, Build) using Claude Agent SDK with phase graph architecture. Session was continued from a previous conversation that hit context limits.
+
+### Work Done
+- [x] **Research Agent** (from previous session, refactored to Agent SDK)
+- [x] **Understand Agent** (`knowledge-forge-614`)
+  - 7 phases: SELF_ASSESS → CONFIGURE → CLASSIFY → CALIBRATE → DIAGNOSE → SLO_COMPLETE → COMPLETE
+  - 14 custom MCP tools using `@tool` decorator
+  - 22 tests
+- [x] **Build Agent** (`knowledge-forge-b7h`)
+  - 7 phases: ANCHOR_DISCOVERY → CLASSIFY → SEQUENCE_DESIGN → CONSTRUCTION → SLO_COMPLETE → CONSOLIDATION → COMPLETE
+  - 20+ custom MCP tools
+  - 36 tests
+  - Scaffold level management (heavy→medium→light→none)
+  - Surrender recovery protocol with 5 strategies
+  - Code mode for concrete examples
+  - Backward transition to anchor discovery when gaps detected
+- [x] All 140 tests passing
+
+### Key Artifacts
+```
+server/agents/
+├── base.py                    # BaseForgeAgent, PhaseTransition
+├── research/                  # Research Agent (facts, sourced answers)
+│   ├── agent.py
+│   ├── phases.py
+│   └── prompts.py
+├── understand/                # Understand Agent (Socratic tutoring)
+│   ├── agent.py
+│   ├── phases.py
+│   └── prompts.py
+└── build/                     # Build Agent (Constructivist tutoring)
+    ├── agent.py               # 20+ MCP tools
+    ├── phases.py              # BuildPhase, BuildPhaseContext
+    └── prompts.py             # Phase prompts
+
+server/tests/
+├── test_research_agent.py     # 23 tests
+├── test_understand_agent.py   # 22 tests
+└── test_build_agent.py        # 36 tests
+```
+
+### Decisions
+- **Claude Agent SDK patterns**:
+  - `@tool(name, description, {"param": type})` decorator
+  - Tools return `{"content": [{"type": "text", "text": "..."}]}`
+  - `create_sdk_mcp_server(name, version, tools=[...])` for in-process MCP
+  - `ClaudeSDKClient` with `receive_response()` for streaming
+  - Tool naming: `mcp__<server>__<tool_name>`
+- **ConstructionSLO requires in_scope/out_of_scope**: Unlike Understand's SLO, Build's ConstructionSLO requires scope definition
+
+### Learnings
+- **`.gitignore` `build/` conflict**: `server/.gitignore` has `build/` for Python build artifacts, but `server/agents/build/` is a real module. Required `git add -f` to force add.
+- **JourneyDesignBrief field changes**: Old tests used wrong fields (`clarified_question`, `mode`, `scope`). Correct fields: `original_question`, `ideal_answer`, `answer_type`, `primary_mode`, `confirmation_message`.
+
+### Beads Updates
+- Closed: `knowledge-forge-614` (Understand Agent), `knowledge-forge-b7h` (Build Agent)
+- All agent issues complete
+
+### Commits
+- `4a2cb2a` - feat: Implement Understand Agent (Socratic Tutoring System)
+- `a29c676` - feat: Implement Build Agent (Constructivist Tutoring System)
+
+### Next Session
+1. Integrate agents with orchestrator (wire up mode agents to API routes)
+2. Test end-to-end flow: question → routing → agent → SSE streaming → UI
+3. Consider removing `build/` from server/.gitignore or renaming agent folder
