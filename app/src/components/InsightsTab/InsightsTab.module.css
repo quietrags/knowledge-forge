@@ -1,0 +1,103 @@
+.container {
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.insight {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: var(--accent-bg);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.insight:hover {
+  border-color: var(--accent);
+}
+
+.insightIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.insightContent {
+  flex: 1;
+}
+
+.quote {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 12px 0;
+  padding: 0;
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+}
+
+.context {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding-left: 19px;
+}
+
+.addBtn {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.addBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}

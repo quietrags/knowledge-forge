@@ -1,0 +1,100 @@
+.container {
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modelCard {
+  display: flex;
+  gap: 20px;
+  padding: 28px;
+  background: linear-gradient(135deg, var(--accent-bg) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+}
+
+.modelIcon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.modelContent {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.modelContent ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.modelContent li {
+  margin-bottom: 12px;
+  padding-left: 0;
+}
+
+.modelContent li:last-child {
+  margin-bottom: 0;
+}
+
+.modelContent strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.editBtn {
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}

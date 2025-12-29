@@ -1,7 +1,23 @@
 import { useEffect } from 'react'
 import './App.css'
 import { useForgeStore, useMode, useActiveTab, useForgeActions } from './store/useStore'
-import { Header, PathBar, CodePanel, CanvasPanel, QuestionTree } from './components'
+import {
+  Header,
+  PathBar,
+  CodePanel,
+  CanvasPanel,
+  QuestionTree,
+  KeyIdeasTab,
+  EmergentQuestionsTab,
+  NarrativeTab,
+  BoundariesTab,
+  ConceptsTab,
+  AnswerableQuestionsTab,
+  MisconceptionsTab,
+  InsightsTab,
+  MentalModelTab,
+  ChatInput,
+} from './components'
 import { MODE_TABS } from './types'
 import {
   mockResearchData,
@@ -48,48 +64,55 @@ function App() {
     }
   }, [mode])
 
-  // Render content based on mode
+  // Render content based on mode and active tab
   const renderContent = () => {
-    if (mode === 'research' && activeTab === 0) {
-      return <QuestionTree />
+    // Research Mode
+    if (mode === 'research') {
+      switch (activeTab) {
+        case 0:
+          return <QuestionTree />
+        case 1:
+          return <KeyIdeasTab />
+        case 2:
+          return <EmergentQuestionsTab />
+        default:
+          return <QuestionTree />
+      }
     }
 
-    // Placeholder for other modes/tabs
-    return (
-      <>
-        <div style={{ marginBottom: '24px' }}>
-          <div
-            style={{
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '6px',
-            }}
-          >
-            {mode === 'build' ? 'Building' : mode === 'understand' ? 'Understanding' : 'Research'}
-          </div>
-          <h1 className="font-display" style={{ fontSize: '30px', fontWeight: 600, lineHeight: 1.2 }}>
-            {mode === 'research' ? 'AI Coding Agent Economics' : 'Agent Architectures'}
-          </h1>
-          <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            {mode === 'build' && 'Building on: llm_basics, prompting'}
-            {mode === 'understand' && 'Addressing: failure modes, architecture selection'}
-            {mode === 'research' && 'Exploring key questions about billing, costs, and optimization'}
-          </div>
-        </div>
-        <div className="font-serif" style={{ fontSize: '17px', lineHeight: 1.8 }}>
-          <p style={{ marginBottom: '1.25em' }}>
-            This is the <strong>{MODE_TABS[mode][activeTab]}</strong> tab for <strong>{mode}</strong>{' '}
-            mode.
-          </p>
-          <p style={{ marginBottom: '1.25em' }}>
-            The content here will be dynamically rendered based on the current mode and selected
-            question or topic.
-          </p>
-        </div>
-      </>
-    )
+    // Build Mode
+    if (mode === 'build') {
+      switch (activeTab) {
+        case 0:
+          return <NarrativeTab />
+        case 1:
+          return <BoundariesTab />
+        case 2:
+          return <ConceptsTab />
+        case 3:
+          return <AnswerableQuestionsTab />
+        default:
+          return <NarrativeTab />
+      }
+    }
+
+    // Understand Mode
+    if (mode === 'understand') {
+      switch (activeTab) {
+        case 0:
+          return <NarrativeTab />
+        case 1:
+          return <MisconceptionsTab />
+        case 2:
+          return <InsightsTab />
+        case 3:
+          return <MentalModelTab />
+        default:
+          return <NarrativeTab />
+      }
+    }
+
+    return null
   }
 
   return (
@@ -117,16 +140,7 @@ function App() {
         <CanvasPanel />
       </main>
 
-      <div className="chat">
-        <div className="chat-inner">
-          <input
-            type="text"
-            className="chat-input"
-            placeholder={mode === 'research' ? 'Add a question or query findings...' : 'Continue...'}
-          />
-          <span className="chat-hint">↵</span>
-        </div>
-      </div>
+      <ChatInput />
     </div>
   )
 }

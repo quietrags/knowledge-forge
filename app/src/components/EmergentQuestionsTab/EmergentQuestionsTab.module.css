@@ -1,0 +1,152 @@
+.container {
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.group {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.groupIcon {
+  font-size: 16px;
+}
+
+.groupName {
+  color: var(--text-muted);
+}
+
+.questions {
+  display: flex;
+  flex-direction: column;
+}
+
+.question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.question:last-child {
+  border-bottom: none;
+}
+
+.question:hover {
+  background: var(--accent-bg);
+}
+
+.questionIcon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.questionText {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.promoteBtn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.question:hover .promoteBtn {
+  opacity: 1;
+}
+
+.promoteBtn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.addBtn {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.addBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
