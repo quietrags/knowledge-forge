@@ -66,17 +66,19 @@ function App() {
 
   // Render content based on mode and active tab
   const renderContent = () => {
-    // Research Mode: Questions, Key Insights, Frontier
+    // Research Mode: Research Essay, Questions, Key Insights, Frontier
     if (mode === 'research') {
       switch (activeTab) {
         case 0:
-          return <QuestionTree />
+          return <NarrativeTab />
         case 1:
-          return <KeyInsightsTab />
+          return <QuestionTree />
         case 2:
+          return <KeyInsightsTab />
+        case 3:
           return <FrontierTab />
         default:
-          return <QuestionTree />
+          return <NarrativeTab />
       }
     }
 

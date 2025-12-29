@@ -27,6 +27,26 @@ export const mockPathData: PathData = {
 export const mockResearchData: ResearchModeData = {
   topic: 'AI Coding Agent Economics',
   meta: 'Exploring key questions about billing, costs, and optimization',
+  essay: {
+    label: 'Research Synthesis',
+    title: 'AI Coding Agent Economics',
+    meta: 'A synthesis of findings on billing, costs, and optimization strategies',
+    content: `
+      <p>The economics of AI coding agents fundamentally differ from traditional software tools. Where conventional developer tools operate on subscription or seat-based pricing with near-zero marginal cost per use, AI agents introduce <strong>token-based billing</strong> where every interaction incurs real compute costs.</p>
+
+      <p>Three key insights have emerged from this research:</p>
+
+      <ul>
+        <li><strong>Asymmetric pricing</strong> — Output tokens cost 3-5x more than input tokens, making agent verbosity the primary cost driver</li>
+        <li><strong>Context as currency</strong> — The ~200k token context window isn't just a capability, it's a consumable resource that depletes the budget</li>
+        <li><strong>Agentic amplification</strong> — Multi-turn agent loops multiply costs non-linearly compared to single-shot autocomplete</li>
+      </ul>
+
+      <p>These dynamics create new optimization challenges. Unlike traditional software where "more features = more value," AI agents must balance capability against cost. The most effective agents aren't the most powerful—they're the ones that solve problems efficiently within economic constraints.</p>
+
+      <p><em>This research continues to explore cost optimization strategies and the emerging economics of human-AI collaboration.</em></p>
+    `,
+  },
   categories: [
     {
       id: 'billing',

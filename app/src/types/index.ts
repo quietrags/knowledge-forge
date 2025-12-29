@@ -67,6 +67,7 @@ export interface AdjacentQuestion {
 export interface ResearchModeData {
   topic: string
   meta: string
+  essay: Narrative // Research synthesis essay
   categories: CategoryQuestion[]
   questions: Question[]
   keyInsights: KeyInsight[]
@@ -188,7 +189,7 @@ export const MODE_COLORS: Record<Mode, ModeColors> = {
 export const MODE_TABS: Record<Mode, string[]> = {
   build: ['Build Narrative', 'Constructs', 'Decisions', 'Capabilities'],
   understand: ['Analysis Essay', 'Assumptions', 'Concepts', 'Model'],
-  research: ['Questions', 'Key Insights', 'Frontier'],
+  research: ['Research Essay', 'Questions', 'Key Insights', 'Frontier'],
 }
 
 // ============================================================================

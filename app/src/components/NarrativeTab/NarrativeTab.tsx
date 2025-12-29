@@ -1,4 +1,4 @@
-import { useBuildData, useUnderstandData, useMode } from '../../store/useStore'
+import { useBuildData, useUnderstandData, useResearchData, useMode } from '../../store/useStore'
 import type { Narrative } from '../../types'
 import styles from './NarrativeTab.module.css'
 
@@ -6,6 +6,7 @@ export function NarrativeTab() {
   const mode = useMode()
   const buildData = useBuildData()
   const understandData = useUnderstandData()
+  const researchData = useResearchData()
 
   // Get the narrative based on mode
   let narrative: Narrative | null = null
@@ -13,6 +14,8 @@ export function NarrativeTab() {
     narrative = buildData.narrative
   } else if (mode === 'understand' && understandData) {
     narrative = understandData.essay
+  } else if (mode === 'research' && researchData) {
+    narrative = researchData.essay
   }
 
   if (!narrative) {
