@@ -24,7 +24,10 @@ import type {
   BuildJourney,
   BuildPhase,
   GroundingConcept,
+  Narrative,
+  Source,
 } from '../types'
+import type { StreamState } from '../api/streaming'
 
 // Helper to generate unique IDs
 const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -57,6 +60,14 @@ interface ForgeState {
   // Contextual panels
   currentCode: CodeContent | null
   currentCanvas: CanvasContent | null
+
+  // API state
+  sessionId: string | null
+  streamState: StreamState
+  isLoading: boolean
+  error: string | null
+  agentThinking: string | null
+  streamingText: string
 
   // Journey intake actions
   setJourneyBrief: (brief: JourneyDesignBrief) => void
@@ -101,6 +112,32 @@ interface ForgeState {
   discardAssumption: (assumptionId: string) => void
   addConcept: (name: string, definition: string) => void
   addModel: (name: string, description: string) => void
+
+  // API state actions
+  setSessionId: (sessionId: string | null) => void
+  setStreamState: (state: StreamState) => void
+  setIsLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  setAgentThinking: (message: string | null) => void
+  appendStreamingText: (delta: string) => void
+  clearStreamingText: () => void
+
+  // SSE event handlers (called from streaming handlers)
+  handleQuestionAdded: (question: Question, categoryId: string) => void
+  handleQuestionAnswered: (questionId: string, answer: string, sources: Source[]) => void
+  handleCategoryAdded: (id: string, category: string) => void
+  handleCategoryInsight: (categoryId: string, insight: string) => void
+  handleKeyInsightAdded: (id: string, title: string, description: string, relevance: string) => void
+  handleAdjacentQuestionAdded: (id: string, question: string, discoveredFrom: string) => void
+  handleConstructAdded: (id: string, name: string, description: string, usage: string) => void
+  handleDecisionAdded: (id: string, choice: string, alternative: string, rationale: string) => void
+  handleCapabilityAdded: (id: string, capability: string, enabledBy: string[]) => void
+  handleGroundingConceptAdded: (id: string, name: string, distinction: string) => void
+  handleAssumptionSurfaced: (id: string, assumption: string, surfaced: string) => void
+  handleConceptDistinguished: (id: string, name: string, definition: string, distinguishedFrom?: string, isThreshold?: boolean) => void
+  handleModelIntegrated: (id: string, name: string, description: string, conceptIds: string[]) => void
+  handleNarrativeUpdated: (mode: Mode, narrative: Narrative, delta?: string) => void
+  handlePhaseChanged: (from: BuildPhase, to: BuildPhase) => void
 }
 
 // ============================================================================
@@ -150,6 +187,14 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
   researchData: null,
   currentCode: null,
   currentCanvas: null,
+
+  // Initial state - API
+  sessionId: null,
+  streamState: 'disconnected',
+  isLoading: false,
+  error: null,
+  agentThinking: null,
+  streamingText: '',
 
   // Journey intake actions
   setJourneyBrief: (brief) => {
@@ -546,6 +591,253 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
       },
     })
   },
+
+  // ============================================================================
+  // API State Actions
+  // ============================================================================
+
+  setSessionId: (sessionId) => set({ sessionId }),
+  setStreamState: (streamState) => set({ streamState }),
+  setIsLoading: (isLoading) => set({ isLoading }),
+  setError: (error) => set({ error }),
+  setAgentThinking: (agentThinking) => set({ agentThinking }),
+  appendStreamingText: (delta) => set((state) => ({ streamingText: state.streamingText + delta })),
+  clearStreamingText: () => set({ streamingText: '' }),
+
+  // ============================================================================
+  // SSE Event Handlers
+  // ============================================================================
+
+  handleQuestionAdded: (question, categoryId) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    // Add question with categoryId
+    const newQuestion = { ...question, categoryId }
+    const updatedQuestions = [...researchData.questions, newQuestion]
+
+    // Update category's questionIds
+    const updatedCategories = researchData.categories.map((cat) =>
+      cat.id === categoryId
+        ? { ...cat, questionIds: [...cat.questionIds, question.id] }
+        : cat
+    )
+
+    set({
+      researchData: {
+        ...researchData,
+        questions: updatedQuestions,
+        categories: updatedCategories,
+      },
+    })
+  },
+
+  handleQuestionAnswered: (questionId, answer, sources) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    set({
+      researchData: {
+        ...researchData,
+        questions: researchData.questions.map((q) =>
+          q.id === questionId
+            ? { ...q, answer, sources, status: 'answered' as const }
+            : q
+        ),
+      },
+    })
+  },
+
+  handleCategoryAdded: (id, category) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newCategory: CategoryQuestion = {
+      id,
+      category,
+      questionIds: [],
+    }
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: [...researchData.categories, newCategory],
+      },
+    })
+  },
+
+  handleCategoryInsight: (categoryId, insight) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    set({
+      researchData: {
+        ...researchData,
+        categories: researchData.categories.map((cat) =>
+          cat.id === categoryId ? { ...cat, insight } : cat
+        ),
+      },
+    })
+  },
+
+  handleKeyInsightAdded: (id, title, description, relevance) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newInsight: KeyInsight = { id, title, description, relevance }
+
+    set({
+      researchData: {
+        ...researchData,
+        keyInsights: [...researchData.keyInsights, newInsight],
+      },
+    })
+  },
+
+  handleAdjacentQuestionAdded: (id, question, discoveredFrom) => {
+    const { researchData } = get()
+    if (!researchData) return
+
+    const newAdjacent: AdjacentQuestion = { id, question, discoveredFrom }
+
+    set({
+      researchData: {
+        ...researchData,
+        adjacentQuestions: [...researchData.adjacentQuestions, newAdjacent],
+      },
+    })
+  },
+
+  handleConstructAdded: (id, name, description, usage) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newConstruct: Construct = { id, name, description, usage }
+
+    set({
+      buildData: {
+        ...buildData,
+        constructs: [...buildData.constructs, newConstruct],
+      },
+    })
+  },
+
+  handleDecisionAdded: (id, choice, alternative, rationale) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newDecision: Decision = { id, choice, alternative, rationale, constructIds: [] }
+
+    set({
+      buildData: {
+        ...buildData,
+        decisions: [...buildData.decisions, newDecision],
+      },
+    })
+  },
+
+  handleCapabilityAdded: (id, capability, enabledBy) => {
+    const { buildData } = get()
+    if (!buildData) return
+
+    const newCapability: Capability = { id, capability, enabledBy }
+
+    set({
+      buildData: {
+        ...buildData,
+        capabilities: [...buildData.capabilities, newCapability],
+      },
+    })
+  },
+
+  handleGroundingConceptAdded: (id, name, distinction) => {
+    const { buildJourney } = get()
+    if (!buildJourney) return
+
+    const newConcept: GroundingConcept = { id, name, distinction, sufficient: false }
+
+    set({
+      buildJourney: {
+        ...buildJourney,
+        grounding: {
+          ...buildJourney.grounding,
+          concepts: [...buildJourney.grounding.concepts, newConcept],
+        },
+      },
+    })
+  },
+
+  handleAssumptionSurfaced: (id, assumption, surfaced) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newAssumption: Assumption = { id, assumption, surfaced, status: 'active' }
+
+    set({
+      understandData: {
+        ...understandData,
+        assumptions: [...understandData.assumptions, newAssumption],
+      },
+    })
+  },
+
+  handleConceptDistinguished: (id, name, definition, distinguishedFrom, isThreshold = false) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newConcept: Concept = { id, name, definition, distinguishedFrom, isThreshold }
+
+    set({
+      understandData: {
+        ...understandData,
+        concepts: [...understandData.concepts, newConcept],
+      },
+    })
+  },
+
+  handleModelIntegrated: (id, name, description, conceptIds) => {
+    const { understandData } = get()
+    if (!understandData) return
+
+    const newModel: Model = { id, name, description, conceptIds }
+
+    set({
+      understandData: {
+        ...understandData,
+        models: [...understandData.models, newModel],
+      },
+    })
+  },
+
+  handleNarrativeUpdated: (mode, narrative, delta) => {
+    const { buildData, understandData, researchData } = get()
+
+    if (mode === 'build' && buildData) {
+      set({
+        buildData: { ...buildData, narrative },
+        streamingText: delta ? get().streamingText + delta : get().streamingText,
+      })
+    } else if (mode === 'understand' && understandData) {
+      set({
+        understandData: { ...understandData, essay: narrative },
+        streamingText: delta ? get().streamingText + delta : get().streamingText,
+      })
+    } else if (mode === 'research' && researchData) {
+      set({
+        researchData: { ...researchData, essay: narrative },
+        streamingText: delta ? get().streamingText + delta : get().streamingText,
+      })
+    }
+  },
+
+  handlePhaseChanged: (_from, to) => {
+    const { buildJourney } = get()
+    if (!buildJourney) return
+
+    set({
+      buildJourney: { ...buildJourney, phase: to },
+    })
+  },
 }))
 
 // ============================================================================
@@ -569,6 +861,14 @@ export const useUnderstandData = () => useForgeStore((state) => state.understand
 export const useResearchData = () => useForgeStore((state) => state.researchData)
 export const useCurrentCode = () => useForgeStore((state) => state.currentCode)
 export const useCurrentCanvas = () => useForgeStore((state) => state.currentCanvas)
+
+// API state selectors
+export const useSessionId = () => useForgeStore((state) => state.sessionId)
+export const useStreamState = () => useForgeStore((state) => state.streamState)
+export const useIsLoading = () => useForgeStore((state) => state.isLoading)
+export const useApiError = () => useForgeStore((state) => state.error)
+export const useAgentThinking = () => useForgeStore((state) => state.agentThinking)
+export const useStreamingText = () => useForgeStore((state) => state.streamingText)
 
 // Action hooks - use useShallow to prevent infinite re-renders
 export const useForgeActions = () =>
@@ -608,5 +908,35 @@ export const useForgeActions = () =>
       discardAssumption: state.discardAssumption,
       addConcept: state.addConcept,
       addModel: state.addModel,
+      // API state actions
+      setSessionId: state.setSessionId,
+      setStreamState: state.setStreamState,
+      setIsLoading: state.setIsLoading,
+      setError: state.setError,
+      setAgentThinking: state.setAgentThinking,
+      appendStreamingText: state.appendStreamingText,
+      clearStreamingText: state.clearStreamingText,
+    }))
+  )
+
+// SSE event handler hooks - use useShallow to prevent infinite re-renders
+export const useStreamHandlers = () =>
+  useForgeStore(
+    useShallow((state) => ({
+      handleQuestionAdded: state.handleQuestionAdded,
+      handleQuestionAnswered: state.handleQuestionAnswered,
+      handleCategoryAdded: state.handleCategoryAdded,
+      handleCategoryInsight: state.handleCategoryInsight,
+      handleKeyInsightAdded: state.handleKeyInsightAdded,
+      handleAdjacentQuestionAdded: state.handleAdjacentQuestionAdded,
+      handleConstructAdded: state.handleConstructAdded,
+      handleDecisionAdded: state.handleDecisionAdded,
+      handleCapabilityAdded: state.handleCapabilityAdded,
+      handleGroundingConceptAdded: state.handleGroundingConceptAdded,
+      handleAssumptionSurfaced: state.handleAssumptionSurfaced,
+      handleConceptDistinguished: state.handleConceptDistinguished,
+      handleModelIntegrated: state.handleModelIntegrated,
+      handleNarrativeUpdated: state.handleNarrativeUpdated,
+      handlePhaseChanged: state.handlePhaseChanged,
     }))
   )
