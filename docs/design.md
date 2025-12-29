@@ -163,8 +163,9 @@ Category Question: "How does X work?"
 
 | Tab | Purpose | Elements |
 |-----|---------|----------|
-| **Concepts** | Atomic units | Name, definition, distinguished-from |
+| **Analysis Essay** | Synthesis narrative | Integrates understanding into coherent story |
 | **Assumptions** | Background surfaced | Believed → Now understand |
+| **Concepts** | Atomic units | Name, definition, distinguished-from |
 | **Model** | Integrated view | Concept relationships |
 
 **Concept Card:**
@@ -200,11 +201,46 @@ Category Question: "How does X work?"
 
 ### Build Mode (Green: #059669)
 
+**Build is a layered journey** with two phases:
+
+```
+Phase 1: GROUNDING          Phase 2: MAKING
+(Minimal understanding)     (Apply to create)
+────────────────────────    ────────────────────────
+Concepts needed             Constructs (techniques)
+Assumptions to check        Decisions (trade-offs)
+Distinctions that matter    Capabilities (skills)
+```
+
 | Tab | Purpose | Elements |
 |-----|---------|----------|
+| **Build Narrative** | Synthesis story | Integrates journey into coherent narrative |
 | **Constructs** | Building blocks | Name, description, usage, code |
 | **Decisions** | Trade-offs | Choice ✓, Alternative ✗, Rationale |
 | **Capabilities** | What you can do | Capability, enabled-by |
+
+**Grounding Panel (Phase 1):**
+
+During the grounding phase, Build mode shows a condensed understanding panel:
+
+```
+┌─────────────────────────────────────┐
+│ GROUNDING: What you need to know    │
+│ ─────────────────────────────────── │
+│ Concept: Token                      │
+│   → Not words, not characters       │
+│                                     │
+│ Concept: Context Window             │
+│   → Not memory, fixed buffer        │
+│                                     │
+│ Concept: Attention                  │
+│   → Not uniform, edges matter       │
+│                                     │
+│ [Ready to build →]                  │
+└─────────────────────────────────────┘
+```
+
+This is minimal—just enough to inform the making phase.
 
 **Construct Card:**
 ```

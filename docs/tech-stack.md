@@ -1,6 +1,6 @@
 # Knowledge Forge — Tech Stack
 
-**Version:** 0.2
+**Version:** 0.3
 **Date:** 2025-12-29
 
 ---
@@ -28,15 +28,27 @@ app/
 │   │   ├── PathBar/
 │   │   ├── CodePanel/
 │   │   ├── CanvasPanel/
+│   │   │
+│   │   │  # Shared
+│   │   ├── NarrativeTab/     # Essay/narrative for all modes
+│   │   ├── ChatInput/
+│   │   ├── InlineAdd/
+│   │   │
+│   │   │  # Research Mode
 │   │   ├── QuestionTree/
-│   │   ├── ConceptsTab/
+│   │   ├── KeyInsightsTab/
+│   │   ├── FrontierTab/
+│   │   │
+│   │   │  # Understand Mode
 │   │   ├── AssumptionsTab/
+│   │   ├── ConceptsTab/
 │   │   ├── ModelTab/
+│   │   │
+│   │   │  # Build Mode
 │   │   ├── ConstructsTab/
 │   │   ├── DecisionsTab/
 │   │   ├── CapabilitiesTab/
-│   │   ├── ChatInput/
-│   │   ├── InlineAdd/
+│   │   │
 │   │   └── index.ts
 │   ├── store/
 │   │   └── useStore.ts      # Zustand store
@@ -78,7 +90,55 @@ export const useForgeActions = () =>
 
 ---
 
-## Data Model (v0.2)
+## Data Model (v0.3)
+
+### Journey Intake
+
+```typescript
+// Routing and journey design
+interface JourneyDesignBrief {
+  originalQuestion: string
+
+  // Work backwards from ideal answer
+  idealAnswer: string           // What would genuinely help?
+  answerType: 'facts' | 'understanding' | 'skill'
+
+  // Routing decision
+  primaryMode: 'research' | 'understand' | 'build'
+  secondaryMode?: 'research'    // If research needed to support primary
+
+  // Misalignment detection
+  implicitQuestion?: string     // What they might REALLY be asking
+
+  // Confirmation
+  confirmationMessage: string   // "It sounds like you want to..."
+}
+
+// Build's two phases
+interface BuildJourney {
+  phase: 'grounding' | 'making'
+
+  // Phase 1: Grounding (minimal understanding)
+  grounding: {
+    concepts: GroundingConcept[]
+    ready: boolean
+  }
+
+  // Phase 2: Making (core build)
+  making: {
+    constructs: Construct[]
+    decisions: Decision[]
+    capabilities: Capability[]
+  }
+}
+
+interface GroundingConcept {
+  id: string
+  name: string
+  distinction: string   // "Not X, but Y"
+  sufficient: boolean   // Enough to proceed?
+}
+```
 
 ### Research Mode
 
