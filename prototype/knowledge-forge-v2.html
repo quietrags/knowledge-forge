@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Forge v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Serif+4:wght@300;400;500;600&family=Source+Sans+3:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #059669;
+      --accent-bg: #ECFDF5;
+      --bg-primary: #FAFAF9;
+      --bg-secondary: #fff;
+      --bg-tertiary: #F5F5F4;
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-muted: #A8A29E;
+      --border: #E7E5E4;
+      --insight: #059669;
+      --doubt: #D97706;
+      --gap: #DC2626;
+      --idea: #7C3AED;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 15px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ======================== HEADER ======================== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .mode-switch {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-tertiary);
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .mode-btn {
+      padding: 8px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-muted);
+    }
+    .mode-btn:hover { color: var(--text-secondary); }
+    .mode-btn.active {
+      background: var(--bg-secondary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      font-weight: 600;
+    }
+    .mode-btn.active[data-mode="build"] { color: #059669; }
+    .mode-btn.active[data-mode="understand"] { color: #2563EB; }
+    .mode-btn.active[data-mode="research"] { color: #7C3AED; }
+
+    /* ======================== PATH BAR ======================== */
+    .path-bar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .path-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .path-trail { display: flex; align-items: center; gap: 6px; flex: 1; }
+    .path-node {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .path-node:hover { background: var(--bg-tertiary); }
+    .path-node.current { background: var(--accent-bg); font-weight: 600; color: var(--accent); }
+    .node-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .node-dot.solid { background: var(--accent); }
+    .node-dot.partial { background: linear-gradient(90deg, var(--accent) 50%, var(--border) 50%); }
+    .path-arrow { color: #D4D4D4; font-size: 11px; }
+    .path-divider { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
+    .neighbors-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .neighbor-chips { display: flex; gap: 6px; }
+    .neighbor-chip {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .neighbor-chip:hover { background: var(--border); }
+
+    /* ======================== MAIN LAYOUT ======================== */
+    .main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      grid-template-rows: 1fr 1fr;
+      overflow: hidden;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    /* ======================== KNOWLEDGE AREA (Main Content) ======================== */
+    .knowledge-area {
+      grid-row: 1 / -1;
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .content-tabs {
+      display: flex;
+      gap: 0;
+      background: var(--bg-tertiary);
+      padding: 8px 24px 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .content-tab {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
+      color: var(--text-muted);
+      transition: all 0.15s;
+      position: relative;
+    }
+    .content-tab:hover { color: var(--text-primary); }
+    .content-tab.active {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .content-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .content-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+      max-width: 800px;
+    }
+    .content-panel { display: none; }
+    .content-panel.active { display: block; }
+
+    /* ======================== NARRATIVE CONTENT ======================== */
+    .narrative-header { margin-bottom: 28px; }
+    .narrative-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .narrative-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .narrative-meta {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Readable prose */
+    .prose {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+    .prose p { margin-bottom: 1.25em; }
+    .prose h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 600;
+      margin: 2em 0 0.75em 0;
+      color: var(--text-primary);
+    }
+    .prose h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 1.5em 0 0.5em 0;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .prose strong { color: var(--accent); font-weight: 600; }
+    .prose em { font-style: italic; }
+    .prose ul, .prose ol { margin: 1em 0 1.25em 1.5em; }
+    .prose li { margin-bottom: 0.5em; }
+    .prose blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 1.25em;
+      margin: 1.5em 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Inline callouts */
+    .callout {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 1.5em 0;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .callout.insight {
+      background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+      border-left: 4px solid var(--insight);
+    }
+    .callout.insight::before {
+      content: '💡 Insight';
+      display: block;
+      font-weight: 600;
+      color: var(--insight);
+      margin-bottom: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .callout.gap {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+      border-left: 4px solid var(--doubt);
+    }
+    .callout.gap::before {
+      content: '⚠️ Gap to Address';
+      display: block;
+      font-weight: 600;
+      color: var(--doubt);
+      margin-bottom: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .callout.prior {
+      background: var(--bg-tertiary);
+      border-left: 4px solid var(--text-muted);
+    }
+    .callout.prior::before {
+      content: '📚 Prior Knowledge';
+      display: block;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ======================== Q&A SECTIONS ======================== */
+    .qa-list { display: flex; flex-direction: column; gap: 16px; }
+    .qa-item {
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .qa-question {
+      padding: 14px 18px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .qa-question::before {
+      content: 'Q';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: var(--accent);
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .qa-answer {
+      padding: 0 18px 14px 50px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    /* ======================== CONCEPTS/VOCABULARY ======================== */
+    .concept-grid { display: flex; flex-direction: column; gap: 12px; }
+    .concept-item {
+      padding: 16px 20px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+    .concept-term {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+    .concept-def {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    /* ======================== QUESTIONS I CAN ANSWER ======================== */
+    .question-list { display: flex; flex-direction: column; gap: 10px; }
+    .question-item {
+      padding: 14px 18px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .question-item:hover {
+      background: var(--accent-bg);
+      border-left: 3px solid var(--accent);
+      padding-left: 15px;
+    }
+    .question-item::before {
+      content: '?';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ======================== RESEARCH: IDEAS ======================== */
+    .idea-list { display: flex; flex-direction: column; gap: 20px; }
+    .idea-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .idea-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .idea-title {
+      font-weight: 600;
+      font-size: 17px;
+      color: #5B21B6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .idea-title::before { content: '💡'; }
+    .idea-body { padding: 16px 20px; }
+    .idea-section { margin-bottom: 14px; }
+    .idea-section:last-child { margin-bottom: 0; }
+    .idea-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .idea-section-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .idea-section-content.known { color: var(--insight); }
+    .idea-section-content.needs-research { color: var(--doubt); }
+
+    /* ======================== SOURCES ======================== */
+    .source-list { display: flex; flex-direction: column; gap: 10px; }
+    .source-item {
+      padding: 14px 18px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .source-item:hover { background: var(--accent-bg); }
+    .source-item.primary { border-left-color: #059669; }
+    .source-item.high { border-left-color: #2563EB; }
+    .source-item.medium { border-left-color: #D97706; }
+    .source-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .source-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .source-title a:hover { text-decoration: underline; }
+    .source-cred {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .source-cred.primary { background: #ECFDF5; color: #059669; }
+    .source-cred.high { background: #EFF6FF; color: #2563EB; }
+    .source-cred.medium { background: #FFFBEB; color: #D97706; }
+    .source-desc { font-size: 13px; color: var(--text-secondary); }
+
+    /* ======================== GAPS ======================== */
+    .gap-list { display: flex; flex-direction: column; gap: 14px; }
+    .gap-item {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
+      border-left: 4px solid var(--gap);
+      border-radius: 0 8px 8px 0;
+    }
+    .gap-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
+      color: #991B1B;
+    }
+    .gap-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+    .gap-type {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 8px;
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--gap);
+      border-radius: 3px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ======================== RIGHT PANELS ======================== */
+    .panel {
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .panel-actions { display: flex; gap: 6px; }
+    .panel-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .panel-btn:hover { background: var(--bg-tertiary); }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+    }
+
+    /* ======================== CODE PANEL ======================== */
+    .code-file {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: #292524;
+      border-radius: 6px 6px 0 0;
+    }
+    .code-block {
+      background: #1C1917;
+      color: #E7E5E4;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+      tab-size: 4;
+    }
+    .code-block .kw { color: #C4B5FD; font-weight: 500; }
+    .code-block .fn { color: #93C5FD; }
+    .code-block .str { color: #86EFAC; }
+    .code-block .cmt { color: #78716C; font-style: italic; }
+    .code-block .num { color: #FCD34D; }
+    .code-block .op { color: #FDA4AF; }
+    .code-block .type { color: #67E8F9; }
+
+    /* ======================== CANVAS PANEL ======================== */
+    .canvas-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .canvas-tab {
+      padding: 7px 14px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .canvas-tab:hover { background: var(--bg-tertiary); }
+    .canvas-tab.active { background: var(--text-primary); color: white; border-color: var(--text-primary); }
+    .canvas-content {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      display: none;
+    }
+    .canvas-content.active { display: block; }
+    .canvas-content h4 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    .canvas-content p { line-height: 1.6; color: var(--text-secondary); margin-bottom: 10px; font-size: 14px; }
+    .canvas-content ul { margin-left: 18px; line-height: 1.8; color: var(--text-secondary); font-size: 14px; }
+    .canvas-content li { margin-bottom: 4px; }
+
+    /* ======================== CHAT ======================== */
+    .chat {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 14px 24px;
+      flex-shrink: 0;
+    }
+    .chat-inner { display: flex; gap: 12px; align-items: center; }
+    .chat-input {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--bg-tertiary);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.15s;
+    }
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-secondary);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+    }
+    .chat-hint { font-size: 13px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Knowledge Forge</div>
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="build" onclick="setMode('build')">build</button>
+      <button class="mode-btn" data-mode="understand" onclick="setMode('understand')">understand</button>
+      <button class="mode-btn" data-mode="research" onclick="setMode('research')">research</button>
+    </div>
+  </header>
+
+  <div class="path-bar" id="path-bar"></div>
+
+  <main class="main">
+    <div class="knowledge-area">
+      <div class="content-tabs" id="content-tabs"></div>
+      <div class="content-body" id="content-body"></div>
+    </div>
+    <div class="panel" id="code-panel"></div>
+    <div class="panel" id="canvas-panel"></div>
+  </main>
+
+  <div class="chat">
+    <div class="chat-inner">
+      <input type="text" class="chat-input" placeholder="Continue the conversation...">
+      <span class="chat-hint">↵ send</span>
+    </div>
+  </div>
+
+  <script>
+    const modeData = {
+      build: {
+        accent: '#059669',
+        accentBg: '#ECFDF5',
+        path: {
+          nodes: [
+            { name: 'ML Basics', status: 'solid' },
+            { name: 'Computer Vision', status: 'solid' },
+            { name: 'Doc Intelligence', status: 'partial' }
+          ],
+          neighbors: ['RAG Pipelines', 'VLM Fine-tuning', 'OCR Evaluation']
+        },
+        tabs: ['Knowledge Narrative', 'Boundaries', 'Concepts', 'Questions I Can Answer'],
+        panels: {
+          narrative: {
+            label: 'Building',
+            title: 'Document Intelligence Models',
+            meta: 'Session 2 • Building on: tesseract_ocr, http_endpoints, ml_model_workflow',
+            content: `
+              <div class="callout prior">
+                You already know how to call HTTP endpoints and handle responses. You've used Tesseract OCR and experienced its limitation: <strong>flat text with no structure</strong>. You understand ML model loading patterns from sklearn and Keras.
+              </div>
+
+              <h2>Why Document Intelligence Models Exist</h2>
+              <p>Traditional OCR like Tesseract reads pixels left-to-right, top-to-bottom. It treats documents as a continuous stream of text. But documents have <strong>structure</strong>: headings, paragraphs, tables, columns, images with captions.</p>
+              <p>When you fed a two-column document to Tesseract, the output was garbled. The text from column one mixed with column two because the OCR didn't understand columns—it just read left to right across the page.</p>
+
+              <div class="callout insight">
+                Modern document intelligence models solve this with a <strong>layout-first approach</strong>: they detect document regions, classify element types, determine reading order, and <em>then</em> extract text. The output isn't just text—it's structured regions with types, bounding boxes, and reading order.
+              </div>
+
+              <h2>Output Formats and Their Uses</h2>
+              <p>You initially guessed JSON would be best for LLM consumption. But consider: LLMs are trained on natural language, and Markdown is closer to natural language than JSON. The format choice depends on <strong>what consumes the output</strong>, not the OCR step.</p>
+              <ul>
+                <li><strong>Markdown</strong> → LLM consumption (RAG, Q&A, summarization)</li>
+                <li><strong>JSON</strong> → Programmatic extraction (invoice processing, form filling)</li>
+                <li><strong>HTML</strong> → Digital reconstruction (archiving, web display)</li>
+                <li><strong>DocTags</strong> → When precise coordinates matter</li>
+              </ul>
+
+              <div class="callout gap">
+                You asked about handwritten text. Most models struggle here. Nanonets-OCR2 specifically targets handwriting, signatures, and watermarks—but even it isn't perfect. For critical handwriting extraction, human validation may still be necessary.
+              </div>
+
+              <h2>The Model Landscape</h2>
+              <p>A key realization: these aren't fixed-output OCR engines. They're <strong>promptable Vision-Language Models</strong>. The same model can output Markdown, JSON, or answer questions—controlled by your prompt.</p>
+              <p>The differentiators are accuracy, language support, model size, and specialized capabilities:</p>
+              <ul>
+                <li><strong>OlmOCR-2 (8B)</strong> — Highest accuracy, English only</li>
+                <li><strong>Chandra (9B)</strong> — High accuracy, 40+ languages</li>
+                <li><strong>DeepSeek-OCR (3B)</strong> — Good balance, ~100 languages</li>
+                <li><strong>Nanonets-OCR2 (4B)</strong> — Handwriting, signatures, watermarks</li>
+                <li><strong>PaddleOCR-VL (0.9B)</strong> — Tiny footprint, 109 languages</li>
+                <li><strong>Granite-Docling (258M)</strong> — Smallest, prompt-based task switching</li>
+              </ul>
+            `
+          },
+          boundaries: [
+            { q: 'How does layout detection differ from simple OCR preprocessing?', a: 'Preprocessing (deskewing, denoising) improves input quality but doesn\'t understand structure. Layout detection identifies semantic regions (heading vs paragraph vs table) and their relationships. It\'s not about cleaning the image—it\'s about understanding the document.' },
+            { q: 'When would I use DocTags format over Markdown?', a: 'When you need precise bounding box coordinates—for example, building a document editor that lets users click on extracted regions, or for validation workflows where humans need to verify specific areas.' },
+            { q: 'Can these models handle documents with mixed languages?', a: 'Models like DeepSeek-OCR and PaddleOCR-VL support 100+ languages and can handle mixed-language documents. The key is choosing a model trained on your target languages. English-only models like OlmOCR-2 will fail on non-English text.' },
+            { q: 'What\'s the relationship between model size and accuracy?', a: 'Generally larger models are more accurate, but it\'s not linear. OlmOCR-2 (8B) achieves highest accuracy on English. But Nanonets-OCR2 (4B) beats larger models on handwritten text because of specialized training. Match the model to your use case.' }
+          ],
+          concepts: [
+            { term: 'Layout Detection', def: 'Identifying regions in a document before extracting text. Outputs bounding boxes and region types (heading, paragraph, table, figure, caption). Enables structure-aware extraction.' },
+            { term: 'Reading Order', def: 'The semantic sequence for reading document regions. A two-column document reads down column one, then down column two—not left-to-right across both. Critical for coherent text extraction.' },
+            { term: 'Vision-Language Model (VLM)', def: 'A model that processes both images and text, enabling visual understanding with natural language output. Doc intelligence models are VLMs prompted for structured extraction.' },
+            { term: 'DocTags', def: 'An output format preserving precise layout with coordinates. Each element includes type, bounding box, and content. Useful when geometry matters for downstream processing.' }
+          ],
+          questions: [
+            'Why does layout detection need to happen before text extraction?',
+            'What output format would you choose for a RAG pipeline, and why?',
+            'How would you decide between DeepSeek-OCR and Nanonets-OCR2 for an invoice processing system?',
+            'What preprocessing might still be needed even with modern doc intelligence models?',
+            'How does prompt engineering apply to document intelligence tasks?'
+          ]
+        },
+        code: {
+          file: 'doc_pipeline.py',
+          content: `<span class="cmt"># Document Intelligence Pipeline</span>
+<span class="cmt"># Converts documents to structured markdown using DeepSeek-OCR</span>
+
+<span class="kw">import</span> base64
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+<span class="kw">def</span> <span class="fn">encode_image</span>(image_path: <span class="type">str</span>) <span class="op">-></span> <span class="type">str</span>:
+    <span class="str">"""Encode image to base64 for API transmission."""</span>
+    <span class="kw">with</span> open(image_path, <span class="str">"rb"</span>) <span class="kw">as</span> f:
+        <span class="kw">return</span> base64.b64encode(f.read()).decode(<span class="str">"utf-8"</span>)
+
+<span class="kw">def</span> <span class="fn">doc_to_markdown</span>(
+    image_path: <span class="type">str</span>,
+    model: <span class="type">str</span> <span class="op">=</span> <span class="str">"deepseek-ocr"</span>
+) <span class="op">-></span> <span class="type">str</span>:
+    <span class="str">"""
+    Convert document image to structured markdown.
+
+    The VLM handles layout detection, reading order,
+    and element classification automatically.
+    """</span>
+    client <span class="op">=</span> OpenAI(base_url<span class="op">=</span><span class="str">"http://localhost:8000/v1"</span>)
+
+    image_data <span class="op">=</span> encode_image(image_path)
+
+    response <span class="op">=</span> client.chat.completions.create(
+        model<span class="op">=</span>model,
+        messages<span class="op">=</span>[{
+            <span class="str">"role"</span>: <span class="str">"user"</span>,
+            <span class="str">"content"</span>: [
+                {
+                    <span class="str">"type"</span>: <span class="str">"image_url"</span>,
+                    <span class="str">"image_url"</span>: {
+                        <span class="str">"url"</span>: <span class="str">f"data:image/png;base64,</span>{image_data}<span class="str">"</span>
+                    }
+                },
+                {
+                    <span class="str">"type"</span>: <span class="str">"text"</span>,
+                    <span class="str">"text"</span>: <span class="str">"""Convert to markdown.
+Preserve document structure:
+- Headings with proper hierarchy
+- Tables in markdown format
+- Lists as bullet points
+- Paragraphs with spacing"""</span>
+                }
+            ]
+        }],
+        max_tokens<span class="op">=</span><span class="num">4096</span>
+    )
+
+    <span class="kw">return</span> response.choices[<span class="num">0</span>].message.content`
+        },
+        canvas: {
+          summary: { title: 'Document Intelligence Pipeline', content: '<p>The core transformation:</p><p><strong>Image → Layout Detection → Element Classification → Reading Order → Structured Output</strong></p><p>Key insight: Format choice depends on downstream use, not the extraction step. Markdown for LLMs, JSON for programmatic access, DocTags when coordinates matter.</p>' },
+          diagram: '<div style="text-align:center; padding: 20px; background: white; border-radius: 6px;"><pre style="font-family: monospace; font-size: 12px; line-height: 2;">┌─────────────┐\n│   Document  │\n│    Image    │\n└──────┬──────┘\n       ▼\n┌─────────────┐\n│   Layout    │\n│  Detection  │\n└──────┬──────┘\n       ▼\n┌─────────────┐\n│   Element   │\n│Classification│\n└──────┬──────┘\n       ▼\n┌─────────────┐\n│  Reading    │\n│   Order     │\n└──────┬──────┘\n       ▼\n┌─────────────┐\n│  Structured │\n│   Output    │\n└─────────────┘</pre></div>',
+          notes: '<p><strong>Decision Framework:</strong></p><ul><li>English only + highest accuracy → OlmOCR-2</li><li>Multi-language → DeepSeek-OCR or Chandra</li><li>Handwriting/signatures → Nanonets-OCR2</li><li>Minimal resources → Granite-Docling (258M)</li></ul>'
+        }
+      },
+
+      understand: {
+        accent: '#2563EB',
+        accentBg: '#EFF6FF',
+        path: {
+          nodes: [
+            { name: 'LLM Basics', status: 'solid' },
+            { name: 'Prompting', status: 'solid' },
+            { name: 'Agent Architectures', status: 'partial' }
+          ],
+          neighbors: ['Tool Use', 'Memory Systems', 'Multi-Agent']
+        },
+        tabs: ['Knowledge Essay', 'Misconceptions', 'Insights', 'Mental Model'],
+        panels: {
+          narrative: {
+            label: 'Understanding',
+            title: 'Agent Architectures',
+            meta: 'Addressing: failure modes, architecture selection, complexity tradeoffs',
+            content: `
+              <div class="callout prior">
+                You understand the basic ReACT loop: think, act, observe, repeat. You know Reflexion adds self-critique. You understand planning as upfront structure. What's less clear: when does each pattern fail, and how do you choose between them?
+              </div>
+
+              <h2>ReACT: Power and Limits</h2>
+              <p>ReACT works like print debugging for AI. The explicit "thought" step makes reasoning visible—you can see <em>why</em> the agent chose an action, not just what it did.</p>
+              <p>But ReACT is <strong>greedy</strong>. It makes locally optimal decisions at each step without lookahead. This creates specific failure modes:</p>
+              <ul>
+                <li><strong>No natural stopping point</strong> — ReACT doesn't know when "good enough" is achieved</li>
+                <li><strong>Context overflow</strong> — Long chains exhaust the context window</li>
+                <li><strong>Tool fixation</strong> — Getting stuck retrying a failing tool</li>
+                <li><strong>Infinite loops</strong> — Cycling between states without progress</li>
+              </ul>
+
+              <div class="callout insight">
+                <strong>"ReACT needs external termination logic because it has no internal sense of 'done'"</strong> — The solution isn't architectural, it's operational: max iterations, token budgets, explicit "done" tools, scratchpad patterns for tracking progress.
+              </div>
+
+              <h2>When Structure Matters: Planning</h2>
+              <p>If your agent's outputs are incoherent across steps—chapter 3 contradicts chapter 1, email #4 ignores the thread—that's a <strong>structure problem</strong>. ReACT can't solve it because each step is independent.</p>
+              <p>Plan-and-Execute creates upfront structure: a planner generates the full sequence, then an executor carries out each step with the plan as context. This enables:</p>
+              <ul>
+                <li><strong>Global coherence</strong> — All steps aware of the full sequence</li>
+                <li><strong>Dependency management</strong> — Step 3 knows step 2's expected output</li>
+                <li><strong>Predictability</strong> — For high-stakes actions, locked plans are safer than adaptive ones</li>
+              </ul>
+
+              <div class="callout gap">
+                Key question: <strong>When should an agent be allowed to replan?</strong> For deployments, financial transactions, or data deletion—anything high-stakes and irreversible—lock the plan and escalate on failure rather than creatively adapting.
+              </div>
+
+              <h2>When Quality Matters: Reflexion</h2>
+              <p>If your agent's outputs are structurally sound but inconsistently good, that's a <strong>quality problem</strong>. Adding planning won't help. Reflexion adds self-critique: generate, evaluate, revise.</p>
+              <p>But Reflexion has costs: 2-3x latency and token usage. Use it when:</p>
+              <ul>
+                <li>Quality is critical and measurable</li>
+                <li>You have clear evaluation criteria</li>
+                <li>Extra time/cost is acceptable</li>
+              </ul>
+              <p>For code generation, <strong>tests are better than self-judgment</strong>. Run the tests, use failures as the critique signal. External validators beat internal reasoning.</p>
+            `
+          },
+          misconceptions: [
+            { q: 'When ReACT fails, should I switch to a different architecture?', a: 'Usually no. Most "ReACT failures" are configuration issues: bad prompts, poor tool descriptions, missing guardrails. Before switching architectures, analyze the failure trace. The fix is often simpler—add iteration limits, improve tool descriptions, or add explicit stopping conditions.' },
+            { q: 'Doesn\'t adding planning and reflection always improve outcomes?', a: 'No—complexity is cost. Each layer adds latency, token usage, and debugging surface. At 100K queries/month, Reflexion can cost 2-3x more. Start simple with ReACT, add complexity only when you\'ve proven you need it with specific failure data.' },
+            { q: 'Is ReACT outdated now that we have more advanced patterns?', a: 'Modern tool-calling IS ReACT, just with cleaner implementation. The pattern remains fundamental. "Advanced" patterns like Reflexion and Planning are additions to ReACT, not replacements. Most production agents are ReACT with guardrails.' }
+          ],
+          insights: [
+            { insight: '"The Thought in ReACT isn\'t just logging—it\'s active cognition that improves the subsequent action"', context: 'When you reason explicitly before acting, the reasoning influences what action you choose. Remove the thought step and action quality degrades.' },
+            { insight: '"You can stack architectures: Plan + Reflexion for tasks with both sequence AND quality needs"', context: 'Email campaigns need global structure (Plan) and each email needs quality (Reflexion). They\'re not mutually exclusive—combine based on the specific problem.' },
+            { insight: '"For code, tests are the gold standard external signal—not LLM self-judgment"', context: 'Self-evaluation is subjective. Tests are objective. When external validation exists, use it. Self-critique is for when you have no better option.' },
+            { insight: '"Start with ReACT, add complexity only when you\'ve proven you need it"', context: 'Premature architecture is like premature optimization. Get the simple version working, measure where it fails, add complexity to solve specific measured problems.' }
+          ],
+          mentalModel: `
+            <h2>Architecture Selection Framework</h2>
+            <div class="callout insight">
+              <strong>The key question isn't "which architecture is best?" but "what specific problem am I solving?"</strong>
+            </div>
+            <h3>If your agent's problem is...</h3>
+            <ul>
+              <li><strong>Incoherent multi-step outputs</strong> → Add Planning (structure problem)</li>
+              <li><strong>Inconsistent quality</strong> → Add Reflexion (quality problem)</li>
+              <li><strong>Too slow/expensive</strong> → Simplify to ReACT (efficiency problem)</li>
+              <li><strong>Infinite loops or no stopping</strong> → Add guardrails (operational problem)</li>
+            </ul>
+            <h3>Production Rules</h3>
+            <ul>
+              <li>High stakes + irreversible → Lock plans, escalate on failure</li>
+              <li>External validation available → Use it (tests > self-judgment)</li>
+              <li>Speed critical → Simplify ruthlessly</li>
+              <li>Debugging needed → Keep reasoning visible (ReACT's strength)</li>
+            </ul>
+          `
+        },
+        code: {
+          file: 'agent_patterns.py',
+          content: `<span class="cmt"># Agent Architecture Patterns</span>
+
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> List, Optional
+
+<span class="cmt"># ─────────────────────────────────────────────</span>
+<span class="cmt"># ReACT with Termination Guardrails</span>
+<span class="cmt"># ─────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">react_loop</span>(
+    agent,
+    task: <span class="type">str</span>,
+    max_iterations: <span class="type">int</span> <span class="op">=</span> <span class="num">10</span>,
+    max_tokens: <span class="type">int</span> <span class="op">=</span> <span class="num">8000</span>
+):
+    <span class="str">"""
+    ReACT with external termination logic.
+    The agent has no internal 'done' sense—we provide it.
+    """</span>
+    tokens_used <span class="op">=</span> <span class="num">0</span>
+
+    <span class="kw">for</span> i <span class="kw">in</span> range(max_iterations):
+        <span class="cmt"># Think: Explicit reasoning (visible for debugging)</span>
+        thought <span class="op">=</span> agent.think(task)
+
+        <span class="cmt"># Act: Choose action based on reasoning</span>
+        action <span class="op">=</span> agent.decide(thought)
+
+        <span class="cmt"># Check for explicit completion</span>
+        <span class="kw">if</span> action.type <span class="op">==</span> <span class="str">"done"</span>:
+            <span class="kw">return</span> action.result
+
+        <span class="cmt"># Observe: Execute and get result</span>
+        observation <span class="op">=</span> agent.execute(action)
+        tokens_used <span class="op">+=</span> observation.tokens
+
+        <span class="cmt"># Token budget guardrail</span>
+        <span class="kw">if</span> tokens_used <span class="op">></span> max_tokens:
+            <span class="kw">return</span> agent.summarize_progress()
+
+        task <span class="op">=</span> agent.update_context(observation)
+
+    <span class="kw">raise</span> TimeoutError(<span class="str">"Max iterations without completion"</span>)
+
+
+<span class="cmt"># ─────────────────────────────────────────────</span>
+<span class="cmt"># Reflexion: Self-Critique Layer</span>
+<span class="cmt"># ─────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">reflexion_generate</span>(
+    agent,
+    task: <span class="type">str</span>,
+    max_revisions: <span class="type">int</span> <span class="op">=</span> <span class="num">3</span>,
+    validator: Optional[callable] <span class="op">=</span> <span class="kw">None</span>
+):
+    <span class="str">"""
+    Generate with self-critique and revision.
+    Use external validator when available (tests > self-judgment).
+    """</span>
+    result <span class="op">=</span> agent.generate(task)
+
+    <span class="kw">for</span> _ <span class="kw">in</span> range(max_revisions):
+        <span class="cmt"># Prefer external validation</span>
+        <span class="kw">if</span> validator:
+            critique <span class="op">=</span> validator(result)
+        <span class="kw">else</span>:
+            critique <span class="op">=</span> agent.self_evaluate(result)
+
+        <span class="kw">if</span> critique.is_acceptable:
+            <span class="kw">return</span> result
+
+        result <span class="op">=</span> agent.revise(result, critique)
+
+    <span class="kw">return</span> result  <span class="cmt"># Best effort after max revisions</span>`
+        },
+        canvas: {
+          summary: { title: 'Agent Architecture Decision Tree', content: '<p><strong>Match problem type to solution:</strong></p><ul><li>Structure problems → Planning</li><li>Quality problems → Reflexion</li><li>Speed/cost problems → Simplify</li><li>Operational problems → Guardrails</li></ul><p>Most failures are configuration issues, not architecture issues.</p>' },
+          diagram: '<div style="text-align:center; padding: 20px; background: white; border-radius: 6px;"><pre style="font-family: monospace; font-size: 11px; line-height: 1.8;">Problem Analysis\n       │\n       ▼\n┌──────────────────┐\n│ Structure issue? │──Yes──▶ Add Planning\n└────────┬─────────┘\n         │ No\n         ▼\n┌──────────────────┐\n│ Quality issue?   │──Yes──▶ Add Reflexion\n└────────┬─────────┘\n         │ No\n         ▼\n┌──────────────────┐\n│ Speed/cost issue?│──Yes──▶ Simplify to ReACT\n└────────┬─────────┘\n         │ No\n         ▼\n┌──────────────────┐\n│ Check guardrails │\n└──────────────────┘</pre></div>',
+          notes: '<p><strong>Production checklist:</strong></p><ul><li>☐ Max iterations set</li><li>☐ Token budget defined</li><li>☐ Explicit "done" action</li><li>☐ Failure escalation path</li><li>☐ External validation where possible</li></ul>'
+        }
+      },
+
+      research: {
+        accent: '#7C3AED',
+        accentBg: '#F3E8FF',
+        path: {
+          nodes: [
+            { name: 'AI Development', status: 'solid' },
+            { name: 'Coding Tools', status: 'solid' },
+            { name: 'Agent Economics', status: 'partial' }
+          ],
+          neighbors: ['Token Optimization', 'Enterprise Adoption', 'ROI Models']
+        },
+        tabs: ['Ideas', 'Key Findings', 'Sources', 'Innovation Gaps'],
+        panels: {
+          ideas: [
+            {
+              title: 'Token-Based Billing Model',
+              known: 'Tokens (~4 chars) are the billing unit. Output tokens cost 2-5x input tokens because generation requires sequential forward passes (autoregressive). Claude Sonnet 4: $3/M input, $15/M output. Every agent call consumes real compute—unlike traditional software with near-zero marginal cost.',
+              needsResearch: 'How do caching mechanisms (prompt caching, KV cache) affect real-world costs? What\'s the actual token count for typical agent workflows across different task types?'
+            },
+            {
+              title: 'Autocomplete vs Agent Economics',
+              known: 'Autocomplete: reactive, single suggestions, often flat-rate. Agents: autonomous multi-step, 5-20 model calls per task, metered pricing. The shift fundamentally changed billing from "unlimited" to usage-based because agents consume significantly more compute.',
+              needsResearch: 'What\'s the crossover point where subscription becomes cheaper than usage-based? How do hybrid models (base + overage) compare in practice?'
+            },
+            {
+              title: 'Context Window Cost Scaling',
+              known: 'Attention mechanism scales O(n²) with context length. Longer contexts = quadratically more compute. This is why models charge more for larger context windows and why context management matters.',
+              needsResearch: 'Quantify the actual cost increase per context doubling. How do sparse attention and sliding window approaches affect this in practice?'
+            }
+          ],
+          findings: [
+            { finding: 'Output tokens cost 2-5x more than input tokens', detail: 'This isn\'t arbitrary pricing—it reflects computational reality. Processing input is a single forward pass. Generating each output token requires a full forward pass while maintaining attention over all previous tokens.' },
+            { finding: 'Most "architecture failures" are configuration issues', detail: 'Before switching from ReACT to complex architectures, analyze failure traces. Poor tool descriptions, missing guardrails, and bad prompts cause more failures than architectural limitations.' },
+            { finding: 'Token costs make agents 5-20x more expensive per task than autocomplete', detail: 'A single agent task may involve multiple reasoning steps, tool calls, and context updates. Each round-trip consumes tokens. Cost optimization requires minimizing unnecessary steps.' }
+          ],
+          sources: [
+            { title: 'Claude Code Smart Usage Guide v4', type: 'Document', credibility: 'primary', desc: 'Comprehensive billing mechanics, usage patterns, optimization strategies', url: '#' },
+            { title: 'Cursor Smart Usage Guide', type: 'Document', credibility: 'primary', desc: 'Credit pools, model selection, cost management', url: '#' },
+            { title: 'GitHub Copilot Smart Usage Guide', type: 'Document', credibility: 'primary', desc: 'Premium request quotas, multipliers, governance', url: '#' },
+            { title: 'Anthropic: Introducing Claude Opus 4.5', type: 'Web', credibility: 'high', desc: 'Official pricing and capabilities announcement', url: 'https://anthropic.com/news/claude-opus-4-5' },
+            { title: 'DX: AI Coding Assistant Pricing 2025', type: 'Web', credibility: 'high', desc: 'Cross-tool pricing comparison and analysis', url: 'https://getdx.com/blog/ai-coding-assistant-pricing/' }
+          ],
+          gaps: [
+            { title: 'Productivity ROI Quantification', desc: 'We know costs, but measuring actual productivity gains remains imprecise. Time saved, quality improvements, and developer satisfaction need systematic measurement.', type: 'Method' },
+            { title: 'Context Window Optimization Techniques', desc: 'Practical techniques for managing context to reduce costs—summarization strategies, selective inclusion, sliding windows—need comparative analysis.', type: 'Technique' },
+            { title: 'Enterprise Governance Patterns', desc: 'How organizations actually manage AI coding tool spend at scale. Budget allocation, usage monitoring, policy enforcement patterns.', type: 'Practice' },
+            { title: 'Model Selection Decision Framework', desc: 'When to use which model (Sonnet vs Opus vs Haiku) for which task types. Cost-benefit analysis per use case category.', type: 'Framework' }
+          ]
+        },
+        code: {
+          file: 'cost_analysis.py',
+          content: `<span class="cmt"># AI Coding Agent Cost Analysis</span>
+
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Dict
+
+<span class="cmt"># ─────────────────────────────────────────────</span>
+<span class="cmt"># Pricing Data (per million tokens, Dec 2025)</span>
+<span class="cmt"># ─────────────────────────────────────────────</span>
+
+PRICING: Dict[<span class="type">str</span>, Dict[<span class="type">str</span>, <span class="type">float</span>]] <span class="op">=</span> {
+    <span class="str">"claude-haiku"</span>:   {<span class="str">"input"</span>: <span class="num">0.25</span>,  <span class="str">"output"</span>: <span class="num">1.25</span>},
+    <span class="str">"claude-sonnet-4"</span>: {<span class="str">"input"</span>: <span class="num">3.00</span>,  <span class="str">"output"</span>: <span class="num">15.00</span>},
+    <span class="str">"claude-opus-4.5"</span>: {<span class="str">"input"</span>: <span class="num">15.00</span>, <span class="str">"output"</span>: <span class="num">75.00</span>},
+    <span class="str">"gpt-4o"</span>:          {<span class="str">"input"</span>: <span class="num">2.50</span>,  <span class="str">"output"</span>: <span class="num">10.00</span>},
+    <span class="str">"gpt-4o-mini"</span>:     {<span class="str">"input"</span>: <span class="num">0.15</span>,  <span class="str">"output"</span>: <span class="num">0.60</span>},
+}
+
+
+<span class="kw">def</span> <span class="fn">calculate_call_cost</span>(
+    input_tokens: <span class="type">int</span>,
+    output_tokens: <span class="type">int</span>,
+    model: <span class="type">str</span> <span class="op">=</span> <span class="str">"claude-sonnet-4"</span>
+) <span class="op">-></span> <span class="type">float</span>:
+    <span class="str">"""Calculate cost for a single API call."""</span>
+    rates <span class="op">=</span> PRICING[model]
+    cost <span class="op">=</span> (
+        input_tokens <span class="op">*</span> rates[<span class="str">"input"</span>] <span class="op">/</span> <span class="num">1_000_000</span> <span class="op">+</span>
+        output_tokens <span class="op">*</span> rates[<span class="str">"output"</span>] <span class="op">/</span> <span class="num">1_000_000</span>
+    )
+    <span class="kw">return</span> round(cost, <span class="num">6</span>)
+
+
+<span class="kw">def</span> <span class="fn">estimate_agent_task_cost</span>(
+    calls: <span class="type">int</span> <span class="op">=</span> <span class="num">8</span>,
+    avg_input: <span class="type">int</span> <span class="op">=</span> <span class="num">3000</span>,
+    avg_output: <span class="type">int</span> <span class="op">=</span> <span class="num">800</span>,
+    model: <span class="type">str</span> <span class="op">=</span> <span class="str">"claude-sonnet-4"</span>
+) <span class="op">-></span> <span class="type">float</span>:
+    <span class="str">"""
+    Estimate total cost for an agent task.
+    Typical task: 5-20 calls with accumulating context.
+    """</span>
+    total <span class="op">=</span> <span class="num">0.0</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(calls):
+        <span class="cmt"># Context grows with each call</span>
+        context_growth <span class="op">=</span> <span class="num">1</span> <span class="op">+</span> (i <span class="op">*</span> <span class="num">0.2</span>)
+        total <span class="op">+=</span> calculate_call_cost(
+            <span class="type">int</span>(avg_input <span class="op">*</span> context_growth),
+            avg_output,
+            model
+        )
+    <span class="kw">return</span> round(total, <span class="num">4</span>)
+
+
+<span class="cmt"># Example: Typical coding agent task</span>
+<span class="cmt"># 8 calls, growing context, Sonnet 4</span>
+<span class="cmt"># ≈ $0.15-0.25 per task</span>`
+        },
+        canvas: {
+          summary: { title: 'AI Coding Economics Summary', content: '<p><strong>Core principles:</strong></p><ul><li>Every inference consumes real compute (unlike traditional software)</li><li>Output costs 2-5x input (generation is harder)</li><li>Agents = 5-20 calls per task</li><li>Context scales O(n²)</li></ul><p>Cost optimization requires minimizing unnecessary steps and managing context carefully.</p>' },
+          diagram: '<div style="text-align:center; padding: 20px; background: white; border-radius: 6px;"><pre style="font-family: monospace; font-size: 11px; line-height: 1.8;">Cost Structure\n─────────────────────────────\nAutocomplete Era    Agent Era\n─────────────────────────────\nFlat rate           Usage-based\nSingle suggestion   Multi-step\n~0 marginal cost    Real compute\nUnlimited           Metered\n─────────────────────────────\n\nPer-Task Cost Factors:\n• Model choice (5-100x range)\n• Call count (5-20 typical)\n• Context size (grows each call)\n• Output length</pre></div>',
+          notes: '<p><strong>Research priorities:</strong></p><ul><li>Quantify productivity ROI</li><li>Compare context optimization techniques</li><li>Document enterprise governance patterns</li><li>Build model selection framework</li></ul>'
+        }
+      }
+    };
+
+    // ===================== RENDER FUNCTIONS =====================
+    function setMode(mode) {
+      const data = modeData[mode];
+      document.documentElement.style.setProperty('--accent', data.accent);
+      document.documentElement.style.setProperty('--accent-bg', data.accentBg);
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      renderPathBar(data);
+      renderTabs(data, mode);
+      renderCodePanel(data);
+      renderCanvasPanel(data);
+    }
+
+    function renderPathBar(data) {
+      const pathBar = document.getElementById('path-bar');
+      const nodesHtml = data.path.nodes.map((node, i) => {
+        const isLast = i === data.path.nodes.length - 1;
+        return `
+          <div class="path-node ${isLast ? 'current' : ''}">
+            <span class="node-dot ${node.status}"></span>
+            ${node.name}
+          </div>
+          ${!isLast ? '<span class="path-arrow">→</span>' : ''}
+        `;
+      }).join('');
+
+      const neighborsHtml = data.path.neighbors.map(n =>
+        `<div class="neighbor-chip">${n}</div>`
+      ).join('');
+
+      pathBar.innerHTML = `
+        <span class="path-label">Path</span>
+        <div class="path-trail">${nodesHtml}</div>
+        <div class="path-divider"></div>
+        <span class="neighbors-label">Explore</span>
+        <div class="neighbor-chips">${neighborsHtml}</div>
+      `;
+    }
+
+    function renderTabs(data, mode) {
+      const tabsEl = document.getElementById('content-tabs');
+      const bodyEl = document.getElementById('content-body');
+
+      tabsEl.innerHTML = data.tabs.map((tab, i) =>
+        `<button class="content-tab ${i === 0 ? 'active' : ''}" onclick="showTab(${i})">${tab}</button>`
+      ).join('');
+
+      if (mode === 'build') {
+        bodyEl.innerHTML = renderBuildPanels(data.panels);
+      } else if (mode === 'understand') {
+        bodyEl.innerHTML = renderUnderstandPanels(data.panels);
+      } else if (mode === 'research') {
+        bodyEl.innerHTML = renderResearchPanels(data.panels);
+      }
+    }
+
+    function renderBuildPanels(panels) {
+      return `
+        <div class="content-panel active" id="panel-0">
+          <div class="narrative-header">
+            <div class="narrative-label">${panels.narrative.label}</div>
+            <h1 class="narrative-title">${panels.narrative.title}</h1>
+            <div class="narrative-meta">${panels.narrative.meta}</div>
+          </div>
+          <div class="prose">${panels.narrative.content}</div>
+        </div>
+        <div class="content-panel" id="panel-1">
+          <div class="narrative-header">
+            <div class="narrative-label">Boundaries</div>
+            <h1 class="narrative-title">Questions & Clarifications</h1>
+          </div>
+          <div class="qa-list">
+            ${panels.boundaries.map(b => `
+              <div class="qa-item">
+                <div class="qa-question">${b.q}</div>
+                <div class="qa-answer">${b.a}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-2">
+          <div class="narrative-header">
+            <div class="narrative-label">Concepts</div>
+            <h1 class="narrative-title">Vocabulary Built</h1>
+          </div>
+          <div class="concept-grid">
+            ${panels.concepts.map(c => `
+              <div class="concept-item">
+                <div class="concept-term">${c.term}</div>
+                <div class="concept-def">${c.def}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-3">
+          <div class="narrative-header">
+            <div class="narrative-label">Self-Test</div>
+            <h1 class="narrative-title">Questions I Can Now Answer</h1>
+          </div>
+          <div class="question-list">
+            ${panels.questions.map(q => `
+              <div class="question-item">${q}</div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUnderstandPanels(panels) {
+      return `
+        <div class="content-panel active" id="panel-0">
+          <div class="narrative-header">
+            <div class="narrative-label">${panels.narrative.label}</div>
+            <h1 class="narrative-title">${panels.narrative.title}</h1>
+            <div class="narrative-meta">${panels.narrative.meta}</div>
+          </div>
+          <div class="prose">${panels.narrative.content}</div>
+        </div>
+        <div class="content-panel" id="panel-1">
+          <div class="narrative-header">
+            <div class="narrative-label">Misconceptions</div>
+            <h1 class="narrative-title">Common Confusions Clarified</h1>
+          </div>
+          <div class="qa-list">
+            ${panels.misconceptions.map(m => `
+              <div class="qa-item">
+                <div class="qa-question">${m.q}</div>
+                <div class="qa-answer">${m.a}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-2">
+          <div class="narrative-header">
+            <div class="narrative-label">Insights</div>
+            <h1 class="narrative-title">Key Realizations</h1>
+          </div>
+          <div class="concept-grid">
+            ${panels.insights.map(i => `
+              <div class="concept-item" style="border-left-color: #7C3AED; background: #F3E8FF;">
+                <div class="concept-term" style="color: #5B21B6;">${i.insight}</div>
+                <div class="concept-def">${i.context}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-3">
+          <div class="narrative-header">
+            <div class="narrative-label">Synthesis</div>
+            <h1 class="narrative-title">Mental Model</h1>
+          </div>
+          <div class="prose">${panels.mentalModel}</div>
+        </div>
+      `;
+    }
+
+    function renderResearchPanels(panels) {
+      return `
+        <div class="content-panel active" id="panel-0">
+          <div class="narrative-header">
+            <div class="narrative-label">Research</div>
+            <h1 class="narrative-title">Ideas Under Investigation</h1>
+          </div>
+          <div class="idea-list">
+            ${panels.ideas.map(idea => `
+              <div class="idea-item">
+                <div class="idea-header">
+                  <div class="idea-title">${idea.title}</div>
+                </div>
+                <div class="idea-body">
+                  <div class="idea-section">
+                    <div class="idea-section-label">What We Know</div>
+                    <div class="idea-section-content known">${idea.known}</div>
+                  </div>
+                  <div class="idea-section">
+                    <div class="idea-section-label">Needs More Research</div>
+                    <div class="idea-section-content needs-research">${idea.needsResearch}</div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-1">
+          <div class="narrative-header">
+            <div class="narrative-label">Findings</div>
+            <h1 class="narrative-title">Key Discoveries</h1>
+          </div>
+          <div class="concept-grid">
+            ${panels.findings.map(f => `
+              <div class="concept-item" style="border-left-color: #7C3AED;">
+                <div class="concept-term">${f.finding}</div>
+                <div class="concept-def">${f.detail}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-2">
+          <div class="narrative-header">
+            <div class="narrative-label">Evidence</div>
+            <h1 class="narrative-title">Sources</h1>
+          </div>
+          <div class="source-list">
+            ${panels.sources.map(s => `
+              <div class="source-item ${s.credibility}">
+                <div class="source-title">
+                  <a href="${s.url}" target="_blank">${s.title}</a>
+                  <span class="source-cred ${s.credibility}">${s.credibility}</span>
+                </div>
+                <div class="source-desc">${s.desc}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="content-panel" id="panel-3">
+          <div class="narrative-header">
+            <div class="narrative-label">Frontier</div>
+            <h1 class="narrative-title">Innovation Gaps</h1>
+          </div>
+          <div class="gap-list">
+            ${panels.gaps.map(g => `
+              <div class="gap-item">
+                <div class="gap-title">${g.title}</div>
+                <div class="gap-desc">${g.desc}</div>
+                <span class="gap-type">${g.type}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCodePanel(data) {
+      document.getElementById('code-panel').innerHTML = `
+        <div class="panel-header">
+          <span class="panel-title">Code</span>
+          <div class="panel-actions">
+            <button class="panel-btn" title="Copy">📋</button>
+            <button class="panel-btn" title="Run">▶</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="code-file">📄 ${data.code.file}</div>
+          <div class="code-block">${data.code.content}</div>
+        </div>
+      `;
+    }
+
+    function renderCanvasPanel(data) {
+      document.getElementById('canvas-panel').innerHTML = `
+        <div class="panel-header">
+          <span class="panel-title">Canvas</span>
+          <div class="panel-actions">
+            <button class="panel-btn" title="Export">↗</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="canvas-tabs">
+            <button class="canvas-tab active" onclick="showCanvas('summary')">Summary</button>
+            <button class="canvas-tab" onclick="showCanvas('diagram')">Diagram</button>
+            <button class="canvas-tab" onclick="showCanvas('notes')">Notes</button>
+          </div>
+          <div class="canvas-content active" id="canvas-summary">
+            <h4>${data.canvas.summary.title}</h4>
+            ${data.canvas.summary.content}
+          </div>
+          <div class="canvas-content" id="canvas-diagram">
+            ${data.canvas.diagram}
+          </div>
+          <div class="canvas-content" id="canvas-notes">
+            ${data.canvas.notes}
+          </div>
+        </div>
+      `;
+    }
+
+    function showTab(index) {
+      document.querySelectorAll('.content-tab').forEach((t, i) => t.classList.toggle('active', i === index));
+      document.querySelectorAll('.content-panel').forEach((p, i) => p.classList.toggle('active', i === index));
+    }
+
+    function showCanvas(name) {
+      document.querySelectorAll('.canvas-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.canvas-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('canvas-' + name).classList.add('active');
+    }
+
+    setMode('build');
+  </script>
+</body>
+</html>

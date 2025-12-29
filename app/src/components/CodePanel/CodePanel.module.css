@@ -1,0 +1,94 @@
+.panel {
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.fileHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--code-header-bg);
+  border-radius: 8px 8px 0 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #A8A29E;
+}
+
+.fileIcon {
+  font-size: 14px;
+}
+
+.fileName {
+  font-weight: 500;
+}
+
+.codeBlock {
+  background: var(--code-bg) !important;
+  color: var(--code-text);
+  padding: 18px !important;
+  border-radius: 0 0 8px 8px !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 13px !important;
+  line-height: 1.8 !important;
+  overflow-x: auto;
+  margin: 0 !important;
+}
+
+.libraryRef {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.libraryRef .libraryLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.libraryRef a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.libraryRef a:hover {
+  text-decoration: underline;
+}

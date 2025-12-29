@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layout A: IDE-Style</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Source Sans 3', sans-serif; background: #FAF8F5; color: #1C1917; font-size: 14px; height: 100vh; overflow: hidden; }
+
+    .layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr 52px; height: 100vh; }
+
+    /* Header */
+    .header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: #fff; border-bottom: 1px solid #E7E5E0; }
+    .logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; }
+    .mode-switch { display: flex; gap: 4px; background: #F5F2ED; padding: 4px; border-radius: 6px; }
+    .mode-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    .mode-btn.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); color: #059669; font-weight: 600; }
+
+    /* Sidebar - Knowledge Galaxy */
+    .sidebar { background: #fff; border-right: 1px solid #E7E5E0; padding: 16px; overflow-y: auto; }
+    .sidebar-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #A8A29E; margin-bottom: 12px; }
+    .topic-node { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; cursor: pointer; }
+    .topic-node:hover { background: #F5F2ED; }
+    .topic-node.current { background: #ECFDF5; border-left: 3px solid #059669; }
+    .node-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .node-dot.solid { background: #059669; }
+    .node-dot.partial { background: linear-gradient(90deg, #2563EB 50%, #E7E5E0 50%); }
+    .node-dot.explored { border: 2px solid #A8A29E; background: transparent; }
+    .topic-name { font-size: 13px; }
+    .topic-children { margin-left: 20px; border-left: 1px solid #E7E5E0; padding-left: 12px; }
+
+    /* Main workspace */
+    .main { display: grid; grid-template-rows: 1fr 200px; overflow: hidden; }
+
+    /* Primary area with tabs */
+    .primary { display: flex; flex-direction: column; overflow: hidden; }
+    .tab-bar { display: flex; gap: 0; background: #F5F2ED; padding: 8px 16px 0; }
+    .tab { padding: 10px 20px; background: transparent; border: none; font-size: 13px; cursor: pointer; border-radius: 6px 6px 0 0; color: #57534E; }
+    .tab.active { background: #fff; color: #1C1917; font-weight: 500; }
+    .workspace { flex: 1; background: #fff; padding: 20px; overflow-y: auto; }
+
+    /* Construction Chronicle content */
+    .chronicle-entry { margin-bottom: 24px; padding-left: 20px; border-left: 2px solid #E7E5E0; }
+    .chronicle-entry.insight { border-left-color: #059669; background: linear-gradient(90deg, #ECFDF5 0%, transparent 100%); padding: 12px 12px 12px 20px; border-radius: 0 8px 8px 0; }
+    .chronicle-entry.doubt { border-left-color: #F59E0B; background: linear-gradient(90deg, #FFFBEB 0%, transparent 100%); padding: 12px 12px 12px 20px; border-radius: 0 8px 8px 0; }
+    .entry-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #A8A29E; margin-bottom: 6px; }
+    .entry-label.insight { color: #059669; }
+    .entry-label.doubt { color: #F59E0B; }
+    .entry-text { line-height: 1.7; }
+    .entry-text strong { color: #059669; }
+    .anchor-tag { display: inline-block; padding: 2px 8px; background: #DBEAFE; color: #1E40AF; border-radius: 4px; font-size: 12px; font-weight: 500; margin: 0 2px; }
+
+    /* Secondary panels */
+    .secondary { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #E7E5E0; }
+    .panel { background: #fff; padding: 16px; overflow-y: auto; }
+    .panel:first-child { border-right: 1px solid #E7E5E0; }
+    .panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #A8A29E; margin-bottom: 12px; }
+
+    /* Code panel */
+    .code-block { background: #1C1917; color: #E7E5E0; padding: 12px; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.6; }
+    .code-block .keyword { color: #A78BFA; }
+    .code-block .string { color: #34D399; }
+    .code-block .comment { color: #6B7280; }
+    .code-block .blank { background: #374151; padding: 2px 24px; border-radius: 3px; }
+
+    /* Curiosity panel */
+    .curiosity-item { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid #F5F2ED; }
+    .curiosity-icon { font-size: 16px; }
+    .curiosity-text { font-size: 13px; color: #57534E; }
+
+    /* Chat bar */
+    .chat-bar { grid-column: 1 / -1; background: #fff; border-top: 1px solid #E7E5E0; padding: 8px 20px; display: flex; align-items: center; gap: 12px; }
+    .chat-input { flex: 1; padding: 12px 16px; background: #F5F2ED; border: none; border-radius: 8px; font-size: 14px; }
+    .chat-input:focus { outline: 2px solid #059669; background: #fff; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <div class="logo">Knowledge Forge</div>
+      <div class="mode-switch">
+        <button class="mode-btn active">build</button>
+        <button class="mode-btn">understand</button>
+        <button class="mode-btn">research</button>
+      </div>
+      <div style="font-size: 13px; color: #57534E;">Topic: <strong>ReACT Agents</strong></div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar-title">Knowledge Galaxy</div>
+      <div class="topic-node">
+        <div class="node-dot solid"></div>
+        <span class="topic-name">Prompting</span>
+      </div>
+      <div class="topic-node">
+        <div class="node-dot solid"></div>
+        <span class="topic-name">AI Agents</span>
+      </div>
+      <div class="topic-children">
+        <div class="topic-node current">
+          <div class="node-dot partial"></div>
+          <span class="topic-name">ReACT</span>
+        </div>
+        <div class="topic-node">
+          <div class="node-dot explored"></div>
+          <span class="topic-name">Tool Use</span>
+        </div>
+      </div>
+      <div class="topic-node">
+        <div class="node-dot partial"></div>
+        <span class="topic-name">Memory</span>
+      </div>
+      <div class="topic-node">
+        <div class="node-dot explored"></div>
+        <span class="topic-name">RAG</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="primary">
+        <div class="tab-bar">
+          <button class="tab active">Construction Chronicle</button>
+          <button class="tab">Anchors</button>
+          <button class="tab">Curiosity</button>
+        </div>
+        <div class="workspace">
+          <div class="chronicle-entry">
+            <div class="entry-label">Building from anchor</div>
+            <div class="entry-text">
+              Starting with <span class="anchor-tag">print_debugging</span> — you mentioned debugging with prints gives you <strong>visibility into execution</strong>. This is exactly what agents need...
+            </div>
+          </div>
+
+          <div class="chronicle-entry insight">
+            <div class="entry-label insight">💡 Insight captured</div>
+            <div class="entry-text">
+              <strong>"You can't see why it did what it did"</strong> — you just constructed the core problem that ReACT solves. Agents without visible reasoning are black boxes.
+            </div>
+          </div>
+
+          <div class="chronicle-entry">
+            <div class="entry-label">Scaffold: Code completion</div>
+            <div class="entry-text">
+              Now that you see <em>why</em> agents need to think out loud, let's look at the structure. What goes in the blank?
+            </div>
+          </div>
+
+          <div class="chronicle-entry doubt">
+            <div class="entry-label doubt">⚠️ Boundary identified</div>
+            <div class="entry-text">
+              You asked "does it always need to observe?" — great question. This is where ReACT has limits. Sometimes observation is expensive or slow. We'll explore when to skip it.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="secondary">
+        <div class="panel">
+          <div class="panel-title">Code Workshop</div>
+          <div class="code-block">
+<span class="keyword">def</span> react_step(agent, task):
+    thought = agent.think(task)
+    action = agent.act(thought)
+    observation = <span class="blank"></span>  <span class="comment"># ?</span>
+    <span class="keyword">return</span> observation
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Neighboring Ideas</div>
+          <div class="curiosity-item">
+            <span class="curiosity-icon">🔍</span>
+            <span class="curiosity-text"><strong>Reflexion</strong> — self-critique after observe</span>
+          </div>
+          <div class="curiosity-item">
+            <span class="curiosity-icon">🔍</span>
+            <span class="curiosity-text"><strong>Plan-and-Execute</strong> — when to plan upfront vs react</span>
+          </div>
+          <div class="curiosity-item">
+            <span class="curiosity-icon">📚</span>
+            <span class="curiosity-text">Research: "How do production agents handle errors?"</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="chat-bar">
+      <input type="text" class="chat-input" placeholder="Continue the conversation...">
+    </div>
+  </div>
+</body>
+</html>

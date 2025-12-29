@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layout B: Cards/Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Source Sans 3', sans-serif; background: #F5F2ED; color: #1C1917; font-size: 14px; min-height: 100vh; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #E7E5E0; position: sticky; top: 0; z-index: 100; }
+    .logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; }
+    .mode-switch { display: flex; gap: 4px; background: #F5F2ED; padding: 4px; border-radius: 6px; }
+    .mode-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 4px; font-size: 13px; cursor: pointer; }
+    .mode-btn.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); color: #059669; font-weight: 600; }
+
+    .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+    /* Galaxy bar */
+    .galaxy-bar { background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .galaxy-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #A8A29E; }
+    .galaxy-path { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .galaxy-path span { color: #57534E; }
+    .galaxy-path strong { color: #059669; }
+    .node-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .node-dot.solid { background: #059669; }
+    .node-dot.partial { background: linear-gradient(90deg, #2563EB 50%, #E7E5E0 50%); }
+
+    /* Card grid */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+    .card.full { grid-column: 1 / -1; }
+    .card-header { padding: 14px 20px; border-bottom: 1px solid #F5F2ED; display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #A8A29E; }
+    .card-toggle { font-size: 18px; color: #A8A29E; cursor: pointer; }
+    .card-body { padding: 20px; }
+
+    /* Chronicle */
+    .entry { margin-bottom: 20px; padding-left: 16px; border-left: 2px solid #E7E5E0; }
+    .entry.insight { border-left-color: #059669; padding: 12px 16px; background: #ECFDF5; border-radius: 0 8px 8px 0; margin-left: 0; }
+    .entry.doubt { border-left-color: #F59E0B; padding: 12px 16px; background: #FFFBEB; border-radius: 0 8px 8px 0; margin-left: 0; }
+    .entry-type { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .entry-type.insight { color: #059669; }
+    .entry-type.doubt { color: #F59E0B; }
+    .entry-type.normal { color: #A8A29E; }
+    .entry-text { line-height: 1.7; }
+    .entry-text strong { color: #059669; }
+    .anchor { display: inline-block; padding: 2px 8px; background: #DBEAFE; color: #1E40AF; border-radius: 4px; font-size: 12px; font-weight: 500; }
+
+    /* Code */
+    .code { background: #1C1917; color: #E7E5E0; padding: 16px; border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.7; }
+    .code .kw { color: #A78BFA; }
+    .code .str { color: #34D399; }
+    .code .cmt { color: #6B7280; }
+    .code .blank { background: #374151; padding: 2px 20px; border-radius: 3px; }
+
+    /* Anchors */
+    .anchor-list { display: flex; flex-direction: column; gap: 10px; }
+    .anchor-item { display: flex; align-items: center; gap: 10px; }
+    .anchor-strength { width: 10px; height: 10px; border-radius: 50%; }
+    .anchor-strength.strong { background: #059669; }
+    .anchor-strength.medium { background: #2563EB; }
+    .anchor-name { font-weight: 500; }
+    .anchor-use { font-size: 12px; color: #57534E; }
+
+    /* Curiosity */
+    .curiosity-item { padding: 10px 0; border-bottom: 1px solid #F5F2ED; display: flex; gap: 10px; }
+    .curiosity-item:last-child { border-bottom: none; }
+    .curiosity-icon { font-size: 16px; }
+    .curiosity-label { font-size: 12px; color: #A8A29E; }
+    .curiosity-text { font-size: 14px; }
+
+    /* Chat */
+    .chat { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #E7E5E0; padding: 12px 24px; }
+    .chat-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 12px; }
+    .chat-input { flex: 1; padding: 12px 16px; background: #F5F2ED; border: none; border-radius: 8px; font-size: 14px; }
+    .chat-input:focus { outline: 2px solid #059669; background: #fff; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">Knowledge Forge</div>
+    <div class="mode-switch">
+      <button class="mode-btn active">build</button>
+      <button class="mode-btn">understand</button>
+      <button class="mode-btn">research</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="galaxy-bar">
+      <span class="galaxy-label">Path</span>
+      <div class="galaxy-path">
+        <span class="node-dot solid"></span> <span>Prompting</span>
+        <span style="color:#A8A29E">→</span>
+        <span class="node-dot solid"></span> <span>Agents</span>
+        <span style="color:#A8A29E">→</span>
+        <span class="node-dot partial"></span> <strong>ReACT</strong>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card full">
+        <div class="card-header">
+          <span class="card-title">Construction Chronicle</span>
+          <span class="card-toggle">−</span>
+        </div>
+        <div class="card-body">
+          <div class="entry">
+            <div class="entry-type normal">Building from anchor</div>
+            <div class="entry-text">Starting with <span class="anchor">print_debugging</span> — debugging with prints gives you <strong>visibility into execution</strong>. This is exactly what agents need...</div>
+          </div>
+          <div class="entry insight">
+            <div class="entry-type insight">💡 Insight</div>
+            <div class="entry-text"><strong>"You can't see why it did what it did"</strong> — you just constructed the core problem ReACT solves.</div>
+          </div>
+          <div class="entry doubt">
+            <div class="entry-type doubt">⚠️ Boundary</div>
+            <div class="entry-text">"Does it always need to observe?" — great question. Sometimes observation is expensive. We'll explore when to skip it.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Code Workshop</span>
+          <span class="card-toggle">−</span>
+        </div>
+        <div class="card-body">
+          <div class="code">
+<span class="kw">def</span> react_step(agent, task):
+    thought = agent.think(task)
+    action = agent.act(thought)
+    observation = <span class="blank"></span>  <span class="cmt"># ?</span>
+    <span class="kw">return</span> observation
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Anchors in Use</span>
+          <span class="card-toggle">−</span>
+        </div>
+        <div class="card-body">
+          <div class="anchor-list">
+            <div class="anchor-item">
+              <span class="anchor-strength strong"></span>
+              <span class="anchor-name">print_debugging</span>
+              <span class="anchor-use">→ visibility insight</span>
+            </div>
+            <div class="anchor-item">
+              <span class="anchor-strength medium"></span>
+              <span class="anchor-name">recipe_following</span>
+              <span class="anchor-use">→ step-by-step execution</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card full">
+        <div class="card-header">
+          <span class="card-title">Neighboring Ideas</span>
+          <span class="card-toggle">−</span>
+        </div>
+        <div class="card-body" style="display: flex; gap: 24px;">
+          <div class="curiosity-item" style="flex: 1; border: none; padding: 0;">
+            <span class="curiosity-icon">🔍</span>
+            <div>
+              <div class="curiosity-label">Explore next</div>
+              <div class="curiosity-text"><strong>Reflexion</strong> — self-critique after observe</div>
+            </div>
+          </div>
+          <div class="curiosity-item" style="flex: 1; border: none; padding: 0;">
+            <span class="curiosity-icon">🔍</span>
+            <div>
+              <div class="curiosity-label">Alternative</div>
+              <div class="curiosity-text"><strong>Plan-and-Execute</strong> — when to plan upfront</div>
+            </div>
+          </div>
+          <div class="curiosity-item" style="flex: 1; border: none; padding: 0;">
+            <span class="curiosity-icon">📚</span>
+            <div>
+              <div class="curiosity-label">Research seed</div>
+              <div class="curiosity-text">"How do production agents handle errors?"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat">
+    <div class="chat-inner">
+      <input type="text" class="chat-input" placeholder="Continue the conversation...">
+    </div>
+  </div>
+</body>
+</html>

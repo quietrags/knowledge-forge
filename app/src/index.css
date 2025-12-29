@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Source+Serif+4:wght@300;400;500;600&family=Source+Sans+3:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Mode-specific accent (updated by JS) */
+  --accent: #059669;
+  --accent-bg: #ECFDF5;
+
+  /* Core colors */
+  --bg-primary: #FAFAF9;
+  --bg-secondary: #fff;
+  --bg-tertiary: #F5F5F4;
+  --text-primary: #1C1917;
+  --text-secondary: #57534E;
+  --text-muted: #A8A29E;
+  --border: #E7E5E4;
+
+  /* Semantic colors */
+  --insight: #059669;
+  --doubt: #D97706;
+  --gap: #DC2626;
+  --idea: #7C3AED;
+
+  /* Status indicators */
+  --status-answered: #059669;
+  --status-researching: #F59E0B;
+  --status-pending: var(--border);
+
+  /* Code panel dark theme */
+  --code-bg: #1C1917;
+  --code-header-bg: #292524;
+  --code-text: #E7E5E4;
+
+  /* Mode colors */
+  --build-accent: #059669;
+  --build-accent-bg: #ECFDF5;
+  --understand-accent: #2563EB;
+  --understand-accent-bg: #EFF6FF;
+  --research-accent: #7C3AED;
+  --research-accent-bg: #F3E8FF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography utilities */
+.font-display {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.font-serif {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}

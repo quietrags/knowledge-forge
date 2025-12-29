@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Forge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Base palette - warm paper tones */
+      --bg-primary: #FAF8F5;
+      --bg-secondary: #F5F2ED;
+      --bg-tertiary: #EFEAE3;
+      --bg-elevated: #FFFFFF;
+
+      /* Text colors */
+      --text-primary: #1C1917;
+      --text-secondary: #57534E;
+      --text-tertiary: #A8A29E;
+      --text-inverse: #FAF8F5;
+
+      /* Borders */
+      --border-light: #E7E5E0;
+      --border-medium: #D6D3CD;
+
+      /* Mode colors - sophisticated versions */
+      --build-primary: #059669;
+      --build-light: #D1FAE5;
+      --build-bg: #ECFDF5;
+
+      --understand-primary: #2563EB;
+      --understand-light: #DBEAFE;
+      --understand-bg: #EFF6FF;
+
+      --research-primary: #7C3AED;
+      --research-light: #EDE9FE;
+      --research-bg: #F5F3FF;
+
+      /* Current mode (default: build) */
+      --mode-primary: var(--build-primary);
+      --mode-light: var(--build-light);
+      --mode-bg: var(--build-bg);
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.04);
+      --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.06);
+      --shadow-lg: 0 8px 24px rgba(28, 25, 23, 0.08);
+
+      /* Typography */
+      --font-display: 'Cormorant Garamond', serif;
+      --font-body: 'Source Sans 3', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      /* Transitions */
+      --transition-fast: 150ms ease;
+      --transition-normal: 250ms ease;
+      --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle paper texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.02;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* App container */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--mode-primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition-normal);
+    }
+
+    .logo-icon svg {
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      background: var(--mode-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      transition: background var(--transition-normal);
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 38% 62%;
+      grid-template-rows: 42% 58%;
+      gap: 1px;
+      flex: 1;
+      background: var(--border-light);
+      overflow: hidden;
+    }
+
+    /* Pane base styles */
+    .pane {
+      background: var(--bg-elevated);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+
+    .pane-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+    }
+
+    .pane-content {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+    }
+
+    /* ===== KNOWLEDGE GALAXY ===== */
+    .galaxy-pane .pane-content {
+      padding: 0;
+      position: relative;
+    }
+
+    .galaxy-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .galaxy-node {
+      cursor: pointer;
+      transition: transform var(--transition-fast);
+    }
+
+    .galaxy-node:hover {
+      transform: scale(1.1);
+    }
+
+    .galaxy-node-circle {
+      transition: all var(--transition-fast);
+    }
+
+    .galaxy-node:hover .galaxy-node-circle {
+      filter: brightness(1.1);
+    }
+
+    .galaxy-node-label {
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 500;
+      fill: var(--text-secondary);
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .galaxy-edge {
+      stroke: var(--border-medium);
+      stroke-width: 1.5;
+      fill: none;
+      opacity: 0.6;
+    }
+
+    .galaxy-legend {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      gap: 12px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.solid { background: var(--build-primary); }
+    .legend-dot.partial {
+      background: conic-gradient(var(--understand-primary) 50%, var(--border-medium) 50%);
+    }
+    .legend-dot.explored {
+      background: transparent;
+      border: 2px solid var(--text-tertiary);
+    }
+
+    /* ===== ACTIVE SESSION ===== */
+    .session-pane .pane-header {
+      padding: 8px 16px;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .mode-tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-tab:hover:not(.active) {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+
+    .mode-tab.active {
+      background: var(--bg-elevated);
+      color: var(--mode-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .mode-tab[data-mode="build"].active { color: var(--build-primary); }
+    .mode-tab[data-mode="understand"].active { color: var(--understand-primary); }
+    .mode-tab[data-mode="research"].active { color: var(--research-primary); }
+
+    .mode-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+
+    .mode-tab.active .mode-indicator {
+      opacity: 1;
+    }
+
+    .session-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: messageIn 0.3s ease;
+    }
+
+    @keyframes messageIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .message.assistant .message-avatar {
+      background: var(--mode-bg);
+      color: var(--mode-primary);
+      transition: all var(--transition-normal);
+    }
+
+    .message.user .message-avatar {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .message.assistant .message-content {
+      background: var(--bg-secondary);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.user .message-content {
+      background: var(--mode-primary);
+      color: var(--text-inverse);
+      border-bottom-right-radius: 4px;
+      transition: background var(--transition-normal);
+    }
+
+    .message-options {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .option-btn {
+      padding: 10px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all var(--transition-fast);
+    }
+
+    .option-btn:hover {
+      border-color: var(--mode-primary);
+      background: var(--mode-bg);
+    }
+
+    .chat-input-container {
+      padding: 16px;
+      border-top: 1px solid var(--border-light);
+      background: var(--bg-elevated);
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      border: 1px solid transparent;
+      transition: all var(--transition-fast);
+    }
+
+    .chat-input-wrapper:focus-within {
+      background: var(--bg-elevated);
+      border-color: var(--mode-primary);
+      box-shadow: 0 0 0 3px var(--mode-light);
+    }
+
+    .chat-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--mode-primary);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .send-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ===== LIVE KNOWLEDGE ===== */
+    .knowledge-pane .pane-content {
+      padding: 0;
+    }
+
+    .knowledge-panel {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .knowledge-panel.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .knowledge-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .knowledge-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-header {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+
+    .current-building {
+      padding: 12px;
+      background: var(--mode-bg);
+      border-radius: 8px;
+      border-left: 3px solid var(--mode-primary);
+      transition: all var(--transition-normal);
+    }
+
+    .current-building-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .current-building-title::before {
+      content: '>';
+      color: var(--mode-primary);
+      font-family: var(--font-mono);
+    }
+
+    .current-building-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .anchor-list, .concept-list, .question-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .anchor-item, .concept-item, .question-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .anchor-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .anchor-dot.strong { background: var(--build-primary); }
+    .anchor-dot.medium { background: var(--understand-primary); }
+    .anchor-dot.weak {
+      background: transparent;
+      border: 2px solid var(--text-tertiary);
+    }
+
+    .concept-icon {
+      font-size: 14px;
+    }
+
+    .concept-item.solid .concept-icon::before { content: '✓'; color: var(--build-primary); }
+    .concept-item.partial .concept-icon::before { content: '◐'; color: var(--understand-primary); }
+    .concept-item.pending .concept-icon::before { content: '○'; color: var(--text-tertiary); }
+
+    /* Knowledge State for Understand mode */
+    .facet-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .facet-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .facet-label {
+      width: 100px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .facet-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .facet-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .facet-fill.solid { background: var(--build-primary); }
+    .facet-fill.shaky { background: var(--understand-primary); }
+    .facet-fill.missing { background: var(--text-tertiary); }
+
+    .facet-status {
+      width: 60px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .facet-status.solid { color: var(--build-primary); }
+    .facet-status.shaky { color: var(--understand-primary); }
+    .facet-status.missing { color: var(--text-tertiary); }
+
+    /* Progress for research */
+    .progress-ring {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .ring-visual {
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+
+    .ring-visual svg {
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: var(--bg-tertiary);
+      stroke-width: 6;
+    }
+
+    .ring-fill {
+      fill: none;
+      stroke: var(--research-primary);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 157;
+      stroke-dashoffset: 52;
+      transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .ring-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .progress-details {
+      flex: 1;
+    }
+
+    .progress-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .progress-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .source-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tier-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .tier-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tier-badge.tier-1 { background: #D1FAE5; color: #065F46; }
+    .tier-badge.tier-2 { background: #DBEAFE; color: #1E40AF; }
+    .tier-badge.tier-3 { background: #FEF3C7; color: #92400E; }
+
+    .library-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .library-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+    }
+
+    .library-name {
+      font-weight: 500;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .library-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .library-stars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .library-status {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 500;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .library-status.active { background: #D1FAE5; color: #065F46; }
+    .library-status.stale { background: #FEF3C7; color: #92400E; }
+
+    /* ===== CODE SANDBOX ===== */
+    .sandbox-pane .pane-header {
+      justify-content: flex-start;
+      gap: 16px;
+    }
+
+    .language-select {
+      padding: 4px 8px;
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .sandbox-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+
+    .sandbox-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-fast);
+    }
+
+    .sandbox-btn:hover {
+      border-color: var(--mode-primary);
+      color: var(--mode-primary);
+    }
+
+    .sandbox-btn.primary {
+      background: var(--mode-primary);
+      border-color: var(--mode-primary);
+      color: white;
+    }
+
+    .sandbox-btn.primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .code-editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .editor-area {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .line-numbers {
+      padding: 16px 8px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-light);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-tertiary);
+      text-align: right;
+      user-select: none;
+      overflow-y: auto;
+    }
+
+    .code-content {
+      flex: 1;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      overflow: auto;
+      white-space: pre;
+      color: var(--text-primary);
+    }
+
+    .code-content .keyword { color: #8B5CF6; }
+    .code-content .string { color: #059669; }
+    .code-content .comment { color: var(--text-tertiary); font-style: italic; }
+    .code-content .function { color: #2563EB; }
+    .code-content .variable { color: #DC2626; }
+
+    .output-panel {
+      border-top: 1px solid var(--border-light);
+      background: var(--bg-secondary);
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+    }
+
+    .output-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .output-status {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--build-primary);
+    }
+
+    .output-content {
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    /* Mode-specific transitions */
+    body.mode-build {
+      --mode-primary: var(--build-primary);
+      --mode-light: var(--build-light);
+      --mode-bg: var(--build-bg);
+    }
+
+    body.mode-understand {
+      --mode-primary: var(--understand-primary);
+      --mode-light: var(--understand-light);
+      --mode-bg: var(--understand-bg);
+    }
+
+    body.mode-research {
+      --mode-primary: var(--research-primary);
+      --mode-light: var(--research-light);
+      --mode-bg: var(--research-bg);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-medium);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body class="mode-build">
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="logo-text">Knowledge Forge</span>
+      </div>
+      <div class="header-actions">
+        <div class="user-badge">
+          <div class="user-avatar">A</div>
+          <span>Anurag</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Knowledge Galaxy (Top-Left) -->
+      <div class="pane galaxy-pane">
+        <div class="pane-header">
+          <span class="pane-title">Knowledge Galaxy</span>
+        </div>
+        <div class="pane-content">
+          <svg class="galaxy-canvas" id="galaxyCanvas"></svg>
+          <div class="galaxy-legend">
+            <div class="legend-item">
+              <div class="legend-dot solid"></div>
+              <span>Solid</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot partial"></div>
+              <span>Partial</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot explored"></div>
+              <span>Explored</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Session (Top-Right) -->
+      <div class="pane session-pane">
+        <div class="pane-header">
+          <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="build">
+              <span class="mode-indicator"></span>
+              build
+            </button>
+            <button class="mode-tab" data-mode="understand">
+              <span class="mode-indicator"></span>
+              understand
+            </button>
+            <button class="mode-tab" data-mode="research">
+              <span class="mode-indicator"></span>
+              research
+            </button>
+          </div>
+        </div>
+        <div class="session-content">
+          <div class="chat-messages" id="chatMessages">
+            <!-- Messages will be populated by JS -->
+          </div>
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <input type="text" class="chat-input" placeholder="Type your message..." id="chatInput">
+              <button class="send-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Knowledge (Bottom-Left) -->
+      <div class="pane knowledge-pane">
+        <div class="pane-header">
+          <span class="pane-title">Live Knowledge</span>
+        </div>
+        <div class="pane-content">
+          <!-- Build Panel -->
+          <div class="knowledge-panel active" id="buildPanel">
+            <div class="knowledge-section">
+              <div class="section-header">Currently Building</div>
+              <div class="current-building">
+                <div class="current-building-title">Understanding ReACT agent loops</div>
+                <div class="current-building-meta">Round 3 of ~5 | Medium scaffold</div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Using Anchors</div>
+              <div class="anchor-list">
+                <div class="anchor-item">
+                  <div class="anchor-dot strong"></div>
+                  <span>print_debugging (strong)</span>
+                </div>
+                <div class="anchor-item">
+                  <div class="anchor-dot medium"></div>
+                  <span>recipe_following (trying)</span>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Constructed Today</div>
+              <div class="concept-list">
+                <div class="concept-item solid">
+                  <span class="concept-icon"></span>
+                  <span>agent_reasoning_visibility</span>
+                </div>
+                <div class="concept-item solid">
+                  <span class="concept-icon"></span>
+                  <span>react_loop_structure</span>
+                </div>
+                <div class="concept-item partial">
+                  <span class="concept-icon"></span>
+                  <span>failure_modes</span>
+                </div>
+                <div class="concept-item pending">
+                  <span class="concept-icon"></span>
+                  <span>when_to_use_react</span>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">From Your Profile</div>
+              <div class="anchor-list">
+                <div class="anchor-item">
+                  <div class="anchor-dot strong"></div>
+                  <span>HTTP endpoints</span>
+                </div>
+                <div class="anchor-item">
+                  <div class="anchor-dot medium"></div>
+                  <span>sklearn workflow</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Understand Panel -->
+          <div class="knowledge-panel" id="understandPanel">
+            <div class="knowledge-section">
+              <div class="section-header">Knowledge State</div>
+              <div class="facet-bars">
+                <div class="facet-row">
+                  <span class="facet-label">Vocabulary</span>
+                  <div class="facet-bar">
+                    <div class="facet-fill solid" style="width: 80%"></div>
+                  </div>
+                  <span class="facet-status solid">Solid</span>
+                </div>
+                <div class="facet-row">
+                  <span class="facet-label">Mental Model</span>
+                  <div class="facet-bar">
+                    <div class="facet-fill shaky" style="width: 45%"></div>
+                  </div>
+                  <span class="facet-status shaky">Shaky</span>
+                </div>
+                <div class="facet-row">
+                  <span class="facet-label">Boundaries</span>
+                  <div class="facet-bar">
+                    <div class="facet-fill missing" style="width: 10%"></div>
+                  </div>
+                  <span class="facet-status missing">Missing</span>
+                </div>
+                <div class="facet-row">
+                  <span class="facet-label">Transfer</span>
+                  <div class="facet-bar">
+                    <div class="facet-fill missing" style="width: 0%"></div>
+                  </div>
+                  <span class="facet-status missing">Untested</span>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Session Progress</div>
+              <div class="current-building" style="border-left-color: var(--understand-primary); background: var(--understand-bg);">
+                <div class="current-building-title">Round 4 of 7+ | Passes: 2/3</div>
+                <div class="current-building-meta">Facet focus: Mental Model</div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Current SLO</div>
+              <p style="font-size: 13px; color: var(--text-secondary); font-style: italic;">
+                "Explain what database indexes do to a junior developer"
+              </p>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Remaining SLOs</div>
+              <div class="concept-list">
+                <div class="concept-item pending">
+                  <span class="concept-icon"></span>
+                  <span>Query optimization</span>
+                </div>
+                <div class="concept-item pending">
+                  <span class="concept-icon"></span>
+                  <span>Index trade-offs</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Research Panel -->
+          <div class="knowledge-panel" id="researchPanel">
+            <div class="knowledge-section">
+              <div class="section-header">Research Progress</div>
+              <div class="progress-ring">
+                <div class="ring-visual">
+                  <svg width="60" height="60" viewBox="0 0 60 60">
+                    <circle class="ring-bg" cx="30" cy="30" r="25"/>
+                    <circle class="ring-fill" cx="30" cy="30" r="25"/>
+                  </svg>
+                  <div class="ring-text">67%</div>
+                </div>
+                <div class="progress-details">
+                  <div class="progress-title">8 of 12 questions</div>
+                  <div class="progress-subtitle">Phase: Gathering sources</div>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Source Quality</div>
+              <div class="source-tiers">
+                <div class="tier-row">
+                  <span class="tier-badge tier-1">Tier 1</span>
+                  <span>4 sources (Official docs)</span>
+                </div>
+                <div class="tier-row">
+                  <span class="tier-badge tier-2">Tier 2</span>
+                  <span>6 sources (Engineering blogs)</span>
+                </div>
+                <div class="tier-row">
+                  <span class="tier-badge tier-3">Tier 3+</span>
+                  <span>3 sources (Community)</span>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Libraries Discovered</div>
+              <div class="library-list">
+                <div class="library-item">
+                  <span class="library-name">langgraph</span>
+                  <div class="library-meta">
+                    <span class="library-stars">★ 5.2k</span>
+                    <span class="library-status active">Active</span>
+                  </div>
+                </div>
+                <div class="library-item">
+                  <span class="library-name">crewai</span>
+                  <div class="library-meta">
+                    <span class="library-stars">★ 12k</span>
+                    <span class="library-status active">Active</span>
+                  </div>
+                </div>
+                <div class="library-item">
+                  <span class="library-name">autogen</span>
+                  <div class="library-meta">
+                    <span class="library-stars">★ 8k</span>
+                    <span class="library-status stale">Stale?</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="knowledge-section">
+              <div class="section-header">Needs Attention</div>
+              <div class="question-list">
+                <div class="question-item" style="color: #92400E;">
+                  <span>⚠</span>
+                  <span>"When to use X vs Y"</span>
+                </div>
+                <div class="question-item" style="color: #92400E;">
+                  <span>⚠</span>
+                  <span>"Production considerations"</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Sandbox (Bottom-Right) -->
+      <div class="pane sandbox-pane">
+        <div class="pane-header">
+          <span class="pane-title">Code Sandbox</span>
+          <select class="language-select">
+            <option>Python</option>
+            <option>TypeScript</option>
+            <option>JavaScript</option>
+          </select>
+          <div class="sandbox-actions">
+            <button class="sandbox-btn primary">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Run
+            </button>
+            <button class="sandbox-btn">Save</button>
+            <button class="sandbox-btn">Clear</button>
+          </div>
+        </div>
+        <div class="code-editor">
+          <div class="editor-area">
+            <div class="line-numbers" id="lineNumbers"></div>
+            <div class="code-content" id="codeContent"></div>
+          </div>
+          <div class="output-panel">
+            <div class="output-header">
+              <span class="output-title">
+                <span class="output-status"></span>
+                Output
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 15l-6-6-6 6"/>
+              </svg>
+            </div>
+            <div class="output-content">
+<span style="color: var(--build-primary);">>>> Running react_step()...</span>
+Thought: I need to find information about Tokyo
+Action: search("Tokyo population 2024")
+Observation: Results show 13.96 million
+<span style="color: var(--build-primary);">>>> Complete!</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ===== MODE SWITCHING =====
+    const modeTabs = document.querySelectorAll('.mode-tab');
+    const knowledgePanels = document.querySelectorAll('.knowledge-panel');
+    const body = document.body;
+
+    modeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const mode = tab.dataset.mode;
+
+        // Update active tab
+        modeTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Update body class for CSS variables
+        body.className = `mode-${mode}`;
+
+        // Update knowledge panel
+        knowledgePanels.forEach(panel => panel.classList.remove('active'));
+        document.getElementById(`${mode}Panel`).classList.add('active');
+
+        // Update chat messages based on mode
+        updateChatForMode(mode);
+      });
+    });
+
+    // ===== CHAT MESSAGES =====
+    const chatMessages = {
+      build: [
+        { role: 'assistant', content: `Before we build understanding of <strong>ReACT agents</strong>, I want to find good starting points.<br><br>Have you ever:<br>• Debugged code by adding print statements?<br>• Talked through a problem out loud (rubber ducking)?<br>• Followed a recipe step by step while cooking?` },
+        { role: 'user', content: 'I debug with prints all the time. And I rubber duck sometimes.' },
+        { role: 'assistant', content: `<strong>Perfect anchors.</strong> Print debugging gives you visibility into what code is doing. Let me build from there.<br><br>When you debug with print statements, what fundamental problem does that solve? Not the bug itself—what does <em>printing</em> give you?` },
+        { role: 'user', content: 'I can see what\'s actually happening instead of guessing.' },
+        { role: 'assistant', content: `Exactly! <strong>Visibility.</strong> Now imagine an AI agent doing a task—searching the web, writing code. It doesn't have print statements.<br><br>What's the equivalent problem?` }
+      ],
+      understand: [
+        { role: 'assistant', content: `Let's see where you're starting from. I'll ask three quick calibration questions.<br><br><strong>Question 1 (Feynman):</strong> Explain what a database index does to a smart 12-year-old in 2-3 sentences. Use simple words.` },
+        { role: 'user', content: 'It\'s like a shortcut that helps the database find things faster instead of looking through everything.' },
+        { role: 'assistant', content: `Good foundation! Now let me probe deeper.<br><br><strong>Question 2 (Minimal Example):</strong> Give me the smallest concrete example where an index would help.` },
+        { role: 'user', content: 'If you have a table of users and you search by email a lot, you\'d index the email column.' },
+        { role: 'assistant', content: `<strong>Question 3 (Misconception):</strong> Which statement is correct, and why are the others wrong?<br><br>A. Indexes speed up all database operations equally<br>B. Indexes speed up reads but can slow down writes<br>C. Indexes only help when you have millions of rows`, hasOptions: true }
+      ],
+      research: [
+        { role: 'assistant', content: `I've analyzed your research request. Here's my understanding:<br><br><strong>Topic:</strong> LangGraph for multi-agent systems<br><strong>Type:</strong> CODE_FOCUSED<br><strong>Focus:</strong> Practical implementation<br><br>I'll produce:<br>1. Reference page (index.html)<br>2. Presentation deck (deck.html)<br>3. Speaker notes<br>4. Blog-ready narrative<br><br>Ready to start question generation?` },
+        { role: 'user', content: 'Yes, proceed.' },
+        { role: 'assistant', content: `<strong>Generated 12 research questions:</strong><br><br><strong>By Priority:</strong><br>• High: 5 (will always be answered)<br>• Medium: 4 (answered if sources available)<br>• Low: 3 (time permitting)<br><br><strong>Story Arc:</strong><br>1. Why multi-agent? (setup)<br>2. Core LangGraph concepts (foundation)<br>3. Implementation patterns (practical)<br>4. Trade-offs vs alternatives (synthesis)<br><br>Shall I proceed with source gathering?` }
+      ]
+    };
+
+    function updateChatForMode(mode) {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+
+      chatMessages[mode].forEach((msg, i) => {
+        setTimeout(() => {
+          const div = document.createElement('div');
+          div.className = `message ${msg.role}`;
+          div.innerHTML = `
+            <div class="message-avatar">${msg.role === 'assistant' ? '◈' : 'A'}</div>
+            <div class="message-content">
+              ${msg.content}
+              ${msg.hasOptions ? `
+                <div class="message-options">
+                  <button class="option-btn">A. Indexes speed up all operations equally</button>
+                  <button class="option-btn">B. Indexes speed up reads but can slow down writes</button>
+                  <button class="option-btn">C. Indexes only help with millions of rows</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+          container.appendChild(div);
+          container.scrollTop = container.scrollHeight;
+        }, i * 100);
+      });
+    }
+
+    // Initialize with build mode messages
+    updateChatForMode('build');
+
+    // ===== KNOWLEDGE GALAXY =====
+    const galaxyData = {
+      nodes: [
+        { id: 'agents', label: 'AI Agents', x: 180, y: 80, mastery: 'solid', size: 28 },
+        { id: 'react', label: 'ReACT', x: 280, y: 130, mastery: 'partial', size: 22 },
+        { id: 'tools', label: 'Tool Use', x: 120, y: 160, mastery: 'solid', size: 20 },
+        { id: 'langchain', label: 'LangChain', x: 320, y: 60, mastery: 'explored', size: 18 },
+        { id: 'prompts', label: 'Prompting', x: 80, y: 90, mastery: 'solid', size: 24 },
+        { id: 'memory', label: 'Memory', x: 220, y: 180, mastery: 'partial', size: 18 },
+        { id: 'indexes', label: 'DB Indexes', x: 380, y: 150, mastery: 'explored', size: 16 },
+        { id: 'rag', label: 'RAG', x: 160, y: 220, mastery: 'partial', size: 20 }
+      ],
+      edges: [
+        { source: 'prompts', target: 'agents' },
+        { source: 'agents', target: 'react' },
+        { source: 'agents', target: 'tools' },
+        { source: 'react', target: 'langchain' },
+        { source: 'tools', target: 'memory' },
+        { source: 'memory', target: 'rag' },
+        { source: 'rag', target: 'indexes' }
+      ]
+    };
+
+    function renderGalaxy() {
+      const svg = document.getElementById('galaxyCanvas');
+      const rect = svg.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+
+      const masteryColors = {
+        solid: '#059669',
+        partial: '#2563EB',
+        explored: '#A8A29E'
+      };
+
+      // Draw edges
+      let edgesHTML = '';
+      galaxyData.edges.forEach(edge => {
+        const source = galaxyData.nodes.find(n => n.id === edge.source);
+        const target = galaxyData.nodes.find(n => n.id === edge.target);
+        edgesHTML += `<line class="galaxy-edge" x1="${source.x}" y1="${source.y}" x2="${target.x}" y2="${target.y}"/>`;
+      });
+
+      // Draw nodes
+      let nodesHTML = '';
+      galaxyData.nodes.forEach(node => {
+        const color = masteryColors[node.mastery];
+        const fillOpacity = node.mastery === 'explored' ? '0' : '1';
+        const strokeWidth = node.mastery === 'explored' ? '2' : '0';
+
+        nodesHTML += `
+          <g class="galaxy-node" transform="translate(${node.x}, ${node.y})">
+            <circle class="galaxy-node-circle" r="${node.size}"
+              fill="${color}" fill-opacity="${fillOpacity}"
+              stroke="${color}" stroke-width="${strokeWidth}"/>
+            <text class="galaxy-node-label" dy="${node.size + 14}">${node.label}</text>
+          </g>
+        `;
+      });
+
+      svg.innerHTML = edgesHTML + nodesHTML;
+    }
+
+    renderGalaxy();
+    window.addEventListener('resize', renderGalaxy);
+
+    // ===== CODE EDITOR =====
+    const codeSnippets = {
+      build: `<span class="keyword">def</span> <span class="function">react_step</span>(agent, task):
+    <span class="comment"># Think: Reason about what to do</span>
+    thought = agent.<span class="function">think</span>(task)
+
+    <span class="comment"># Act: Take the action</span>
+    action = agent.<span class="function">act</span>(thought)
+
+    <span class="comment"># Observe: Check what happened</span>
+    observation = <span class="variable">_______</span>  <span class="comment"># What goes here?</span>
+
+    <span class="keyword">return</span> observation
+
+<span class="comment"># Example trace:</span>
+<span class="string">"""
+Thought: I need to find Tokyo's population
+Action: search("Tokyo population 2024")
+Observation: Results show 13.96 million
+"""</span>`,
+      understand: `<span class="comment">-- Example: Query without index</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users
+<span class="keyword">WHERE</span> email = <span class="string">'user@example.com'</span>;
+<span class="comment">-- Scans all 1M rows: ~500ms</span>
+
+<span class="comment">-- Create an index</span>
+<span class="keyword">CREATE INDEX</span> idx_users_email
+<span class="keyword">ON</span> users(email);
+
+<span class="comment">-- Same query with index: ~2ms</span>
+<span class="comment">-- Why? B-tree lookup is O(log n)</span>
+
+<span class="comment">-- But watch out for writes:</span>
+<span class="keyword">INSERT INTO</span> users (email, name)
+<span class="keyword">VALUES</span> (<span class="string">'new@example.com'</span>, <span class="string">'New User'</span>);
+<span class="comment">-- Index must also be updated!</span>`,
+      research: `<span class="keyword">from</span> langgraph.graph <span class="keyword">import</span> StateGraph
+
+<span class="comment"># Define your agent state</span>
+<span class="keyword">class</span> <span class="function">AgentState</span>(TypedDict):
+    messages: list[BaseMessage]
+    next_step: <span class="variable">str</span>
+
+<span class="comment"># Create the graph</span>
+graph = <span class="function">StateGraph</span>(AgentState)
+
+<span class="comment"># Add nodes (agents/tools)</span>
+graph.<span class="function">add_node</span>(<span class="string">"researcher"</span>, research_agent)
+graph.<span class="function">add_node</span>(<span class="string">"writer"</span>, writer_agent)
+
+<span class="comment"># Add edges (workflow)</span>
+graph.<span class="function">add_edge</span>(<span class="string">"researcher"</span>, <span class="string">"writer"</span>)
+
+<span class="comment"># Compile and run</span>
+app = graph.<span class="function">compile</span>()`
+    };
+
+    function updateCode(mode) {
+      const codeContent = document.getElementById('codeContent');
+      const lineNumbers = document.getElementById('lineNumbers');
+
+      codeContent.innerHTML = codeSnippets[mode];
+
+      const lines = codeSnippets[mode].split('\n').length;
+      lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+    }
+
+    updateCode('build');
+
+    // Update code when mode changes
+    modeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        updateCode(tab.dataset.mode);
+      });
+    });
+
+    // ===== CHAT INPUT =====
+    const chatInput = document.getElementById('chatInput');
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && chatInput.value.trim()) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'message user';
+        div.innerHTML = `
+          <div class="message-avatar">A</div>
+          <div class="message-content">${chatInput.value}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        chatInput.value = '';
+
+        // Simulate response
+        setTimeout(() => {
+          const response = document.createElement('div');
+          response.className = 'message assistant';
+          response.innerHTML = `
+            <div class="message-avatar">◈</div>
+            <div class="message-content">That's a great observation! Let me build on that...</div>
+          `;
+          container.appendChild(response);
+          container.scrollTop = container.scrollHeight;
+        }, 1000);
+      }
+    });
+  </script>
+</body>
+</html>
