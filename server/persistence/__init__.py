@@ -32,6 +32,10 @@ from .models import (
     AdjacentQuestion,
     ResearchModeData,
     # Understand
+    SLOFrame,
+    FacetStatus,
+    SLO,
+    KnowledgeStateFacet,
     Assumption,
     Concept,
     Model,
@@ -72,6 +76,10 @@ __all__ = [
     "AdjacentQuestion",
     "ResearchModeData",
     # Understand
+    "SLOFrame",
+    "FacetStatus",
+    "SLO",
+    "KnowledgeStateFacet",
     "Assumption",
     "Concept",
     "Model",

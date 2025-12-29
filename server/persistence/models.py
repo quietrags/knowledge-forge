@@ -146,6 +146,31 @@ class ResearchModeData(CamelModel):
 # Understand Mode Data
 # =============================================================================
 
+# SLO Frame types
+SLOFrame = Literal["EXPLAIN", "DECIDE", "BUILD", "DEBUG", "COMPARE"]
+FacetStatus = Literal["not_tested", "missing", "shaky", "solid"]
+
+
+class SLO(CamelModel):
+    """A Single Learning Objective for the Understand agent."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    statement: str  # One sentence, testable, bounded
+    frame: SLOFrame  # EXPLAIN, DECIDE, BUILD, DEBUG, COMPARE
+    in_scope: list[str] = []  # 1-2 bullets
+    out_of_scope: list[str] = []  # 1-2 bullets
+    sample_transfer_check: str = ""  # Question to verify mastery
+    estimated_rounds: int = 4  # 2-4 for atomic, 4-7 for complex
+
+
+class KnowledgeStateFacet(CamelModel):
+    """Knowledge state for a single facet."""
+    facet: str  # vocabulary, mental_model, practical_grasp, boundary_conditions, transfer
+    status: FacetStatus = "not_tested"
+    evidence: str = ""
+    rounds: int = 0
+    last_result: Optional[Literal["pass", "fail"]] = None
+
+
 class Assumption(CamelModel):
     """An assumption to surface and examine."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
