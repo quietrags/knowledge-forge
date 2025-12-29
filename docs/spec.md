@@ -7,22 +7,51 @@
 
 ## What Is Knowledge Forge?
 
-A learning platform with two **end goals** and one **supporting tool**:
+A learning platform with **layered learning modes**:
 
-### End Goals (Primary Modes)
+### The Layered Model
 
-| Mode | Driving Question | Outputs |
-|------|------------------|---------|
-| **/understand** | How should we think about this? | Concepts, Models |
-| **/build** | What can we make? | Constructs, Capabilities, Systems |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         BUILD                               │
+│        "What can we make?" (Applied understanding)          │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │              UNDERSTAND                             │   │
+│   │   "How should we think?" (Conceptual foundation)    │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│   Build ALWAYS requires understanding first.                │
+│   The understanding may be minimal (just enough to build)   │
+│   or deep (comprehensive conceptual grounding).             │
+└─────────────────────────────────────────────────────────────┘
 
-### Supporting Tool
+┌─────────────────────────────────────────────────────────────┐
+│                      UNDERSTAND                             │
+│        "How should we think?" (Pure conceptual)             │
+│                                                             │
+│   Understand CAN stand alone—not everything needs making.   │
+│   Deep exploration of concepts, models, mental frameworks.  │
+└─────────────────────────────────────────────────────────────┘
 
-| Tool | Driving Question | When Used |
-|------|------------------|-----------|
-| **/research** | What do we need to know? | Invoked FROM understand/build when gaps arise |
+┌─────────────────────────────────────────────────────────────┐
+│                       RESEARCH                              │
+│        "What do we need to know?" (Knowledge gathering)     │
+│                                                             │
+│   Supports BOTH understand and build.                       │
+│   Can also be primary for pure fact-finding.                │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Key insight:** Research is NOT a destination. Users start with "I want to understand X" or "I want to build Y", never "Research X".
+### Mode Relationships
+
+| Mode | Nature | Stands Alone? | Relationship |
+|------|--------|---------------|--------------|
+| **/understand** | Conceptual development | Yes | Pure thinking |
+| **/build** | Applied understanding | No | Always includes understanding phase |
+| **/research** | Knowledge gathering | Yes* | Supports both; *can be primary for fact-finding |
+
+**Key insight:** Build is a meta-outcome. You can't build without understanding something first. The question is: how much understanding is needed before making?
 
 ---
 
@@ -233,6 +262,51 @@ Research as Supporting:
 4. **COMPOSE** — Capabilities → System
 
 **Pedagogical basis:** [Constructionism](https://learning.media.mit.edu/content/publications/EA.Piaget%20_%20Papert.pdf) (Papert) — learning by making external artifacts.
+
+**Build's Two Phases:**
+
+Build is a meta-outcome that always includes understanding. Every Build journey has two phases:
+
+```
+BUILD JOURNEY
+═════════════
+
+Phase 1: GROUNDING (Minimal Understand)
+─────────────────────────────────────────
+  Goal: Just enough conceptual foundation to build well
+
+  • What concepts do you need to grasp?
+  • What assumptions might lead you astray?
+  • What distinctions matter for this build?
+
+  Output: Minimal viable understanding
+  Depth: Shallow but sufficient
+
+Phase 2: MAKING (Core Build)
+─────────────────────────────────────────
+  Goal: Apply understanding to create something
+
+  • Identify constructs (building blocks)
+  • Make decisions (trade-offs)
+  • Develop capabilities (what you can now do)
+
+  Output: Working artifact + transferable skill
+  Depth: Deep practical application
+```
+
+**Example: "How do I write better prompts?"**
+
+| Phase | What Happens |
+|-------|--------------|
+| **Grounding** | Grasp: tokens (not words), context window (not memory), attention (not uniform). Just enough to make informed decisions. |
+| **Making** | Learn: few-shot technique, role assignment, scratchpad pattern. Decide: when to use each. Develop: ability to iterate when prompts fail. |
+
+**Contrast with Pure Understand:**
+
+| Question | Mode | Why |
+|----------|------|-----|
+| "How do I write better prompts?" | Build | Wants skill (techniques to apply) |
+| "Why do LLMs sometimes hallucinate?" | Understand | Wants explanation (no making needed) |
 
 ---
 
