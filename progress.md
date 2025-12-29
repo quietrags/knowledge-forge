@@ -426,7 +426,72 @@ app/src/components/
 - Change to `journeyState: 'intake'` to enable full flow
 
 ### Next Session
-1. Consider edit/delete functionality for items
-2. Plan API integration for LLM-powered content generation
-3. Add real question routing via LLM (replace heuristics)
-4. Persist journey state across sessions
+1. ~~Consider edit/delete functionality for items~~ (deferred)
+2. ~~Plan API integration for LLM-powered content generation~~ DONE
+3. ~~Add real question routing via LLM (replace heuristics)~~ (in architecture)
+4. ~~Persist journey state across sessions~~ (in architecture)
+
+---
+
+## Session: 2025-12-29 (Backend Architecture Design)
+
+### Summary
+Designed comprehensive unified backend architecture for Knowledge Forge. Created 7 beads issues for parallel implementation via git worktrees. Architecture covers orchestration, streaming, API contracts, state sync, and persistence.
+
+### Decisions
+- **Backend**: Python + FastAPI (matches existing patterns)
+- **Streaming**: Server-Sent Events (simpler than WebSocket)
+- **Persistence**: File-based JSON sessions (no learner profiles yet)
+- **Web Search**: Claude's built-in web search tool
+- **Auth**: Deferred to later (sessions identified by ID only)
+- **Hosting**: Local development only for now
+
+### Work Done
+- [x] Explored frontend structure, skill specs, and existing backend patterns
+- [x] Designed unified architecture with 7 parallelizable modules
+- [x] Defined API contract (TypeScript types, endpoints, SSE protocol)
+- [x] Defined agent interface contract (Python BaseAgent)
+- [x] Created `docs/backend-architecture.md` (730+ lines)
+- [x] Created 7 beads issues with dependencies
+- [x] Set up 7 git branches for worktree development
+
+### Key Artifacts
+```
+docs/backend-architecture.md   # Complete architecture spec
+
+Beads Issues (7):
+├── knowledge-forge-751 [P1] Backend API Layer
+├── knowledge-forge-3mn [P1] Backend Persistence
+├── knowledge-forge-3fe [P1] Frontend API Integration
+├── knowledge-forge-cm0 [P2] Backend Orchestrator (depends on API)
+├── knowledge-forge-7x2 [P2] Research Agent (depends on Orchestrator)
+├── knowledge-forge-614 [P2] Understand Agent (depends on Orchestrator)
+└── knowledge-forge-b7h [P2] Build Agent (depends on Orchestrator)
+
+Git Branches (7):
+├── backend-api-layer
+├── backend-persistence
+├── frontend-api-integration
+├── backend-orchestrator
+├── backend-research-agent
+├── backend-understand-agent
+└── backend-build-agent
+```
+
+### Architecture Highlights
+- **SSE Event Types**: 15+ event types for real-time UI updates
+- **Agent Interface**: `initialize()`, `process_message()`, `get_state()`, `restore_state()`
+- **Session Persistence**: JSON files in `server/data/sessions/`
+- **Worktree Strategy**: 7 branches, merge order defined for integration
+
+### Learnings
+- Skill specs (build-v1, understand-v3, research-v3) define complete agent behaviors with phases, state tracking, and failure modes
+- User's existing patterns favor FastAPI + Next.js API routes as proxy
+- SSE is simpler than WebSocket for this use case (one-way server→client streaming)
+
+### Next Session
+1. Start implementing P1 modules (can parallelize):
+   - `backend-api-layer` — FastAPI skeleton, routes, SSE
+   - `backend-persistence` — Session store, file backend
+   - `frontend-api-integration` — API client, stream handlers
+2. After P1: Implement orchestrator, then agents
