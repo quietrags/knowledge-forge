@@ -1,5 +1,81 @@
 # Knowledge Forge — UI/UX Design Document
 
+---
+
+## Current Implementation (v1.0)
+
+The current frontend implements a simplified 3-pane layout with tab-based content:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Knowledge Forge                                    [build] [understand] [research]
+├─────────────────────────────────────────────────────────────────────────────┤
+│  PATH  ● LLM Basics → ● Prompting → ◐ Agent Architectures    [Tool Use] [Memory]
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────────────────────────────────┐  ┌─────────────────┐  │
+│  │ [Tab 1] [Tab 2] [Tab 3] [Tab 4]                  │  │ CODE            │  │
+│  │                                                  │  │                 │  │
+│  │  KNOWLEDGE AREA                                  │  │ Syntax-         │  │
+│  │  (Tab-based content per mode)                    │  │ highlighted     │  │
+│  │                                                  │  │ code panel      │  │
+│  │  BUILD:                                          │  │                 │  │
+│  │  - Build Narrative (knowledge essay)             │  ├─────────────────┤  │
+│  │  - Components (building blocks)                  │  │ CANVAS          │  │
+│  │  - Decisions (trade-offs)                        │  │                 │  │
+│  │  - Capabilities (what you can now do)            │  │ [Summary]       │  │
+│  │                                                  │  │ [Diagram]       │  │
+│  │  UNDERSTAND:                                     │  │                 │  │
+│  │  - Analysis Essay                                │  │ Visual          │  │
+│  │  - Distinctions (A vs B)                         │  │ summaries       │  │
+│  │  - Assumptions (surfaced beliefs)                │  │                 │  │
+│  │  - Mental Model (decision framework)             │  │                 │  │
+│  │                                                  │  │                 │  │
+│  │  RESEARCH:                                       │  │                 │  │
+│  │  - Question Tree (hierarchical)                  │  │                 │  │
+│  │  - Key Ideas                                     │  │                 │  │
+│  │  - Emergent Questions                            │  │                 │  │
+│  │                                                  │  │                 │  │
+│  └──────────────────────────────────────────────────┘  └─────────────────┘  │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐
+│  │ [Chat input placeholder...]                                              │
+│  └──────────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Implemented Components
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Header | ✓ | Mode switcher with accent colors |
+| PathBar | ✓ | Learning path breadcrumb + neighbors |
+| CodePanel | ✓ | Syntax highlighting via prism-react-renderer |
+| CanvasPanel | ✓ | Summary/Diagram tabs with HTML content |
+| QuestionTree | ✓ | Expandable categories/questions/sub-questions |
+| ComponentsTab | ✓ | Build: name, description, usage |
+| DecisionsTab | ✓ | Build: choice vs alternative + rationale |
+| CapabilitiesTab | ✓ | Build: capability + enabledBy |
+| DistinctionsTab | ✓ | Understand: A vs B + difference |
+| AssumptionsTab | ✓ | Understand: assumed → now understand |
+| NarrativeTab | ✓ | Shared: HTML content rendering |
+| MentalModelTab | ✓ | Understand: decision framework |
+| KeyIdeasTab | ✓ | Research: key ideas list |
+| EmergentQuestionsTab | ✓ | Research: grouped by source |
+| ChatInput | ✓ | Mode-specific placeholder text |
+| InlineAdd | ✓ | Reusable inline add form |
+
+### Not Yet Implemented
+
+- Knowledge Galaxy (D3.js graph visualization)
+- Monaco Editor (interactive code editing)
+- Code execution
+- WebSocket backend communication
+- Agent integration
+- Session persistence
+
+---
+
 ## The Core Insight
 
 Each learning mode isn't a single interface — it's a **workspace with multiple specialized panels**. The platform must:

@@ -30,9 +30,65 @@ Knowledge Forge is a unified web-based learning platform that weaves together th
 
 | Mode | Pedagogy | Core Mechanism |
 |------|----------|----------------|
-| **/build** | Constructivist | Find anchors in prior knowledge, scaffold construction |
-| **/understand** | Socratic | Diagnose gaps through questioning, then teach |
-| **/research** | Evidence-based | Gather authoritative sources, synthesize knowledge |
+| **/build** | Constructivist | Combine components, make decisions, develop capabilities |
+| **/understand** | Socratic | Surface distinctions, challenge assumptions, build mental models |
+| **/research** | Evidence-based | Generate questions, gather sources, synthesize knowledge |
+
+### Conceptual Model: Research as Bedrock
+
+**Key Insight:** Research is the foundation that enables both Understanding and Building.
+
+```
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                                                         │
+                    │                  UNDERSTAND                             │
+                    │            (Analytical - Taking Apart)                  │
+                    │                                                         │
+                    │   Distinctions ─── What's the difference between A & B? │
+                    │   Assumptions ──── What did I believe vs. reality?      │
+                    │   Mental Model ─── How do I think about this now?       │
+                    │                                                         │
+                    └─────────────────────────┬───────────────────────────────┘
+                                              │
+                                              │ surfaces questions about
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│                              RESEARCH                                           │
+│                        (Exploratory - Bedrock)                                  │
+│                                                                                 │
+│   Questions can be:                                                             │
+│   ├── Component-level: "What does X do? How does Y work?"                       │
+│   ├── Decision-level: "Why choose X over Y? What are the trade-offs?"           │
+│   ├── Capability-level: "What can I build with this? What does it enable?"      │
+│   ├── Distinction-level: "How is X different from Y?"                           │
+│   └── Assumption-level: "Is it true that...? What's the reality?"               │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                              │
+                                              │ informs construction of
+                                              ▼
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                                                         │
+                    │                     BUILD                               │
+                    │            (Synthetic - Putting Together)               │
+                    │                                                         │
+                    │   Components ─── What are the building blocks?          │
+                    │   Decisions ──── What trade-offs am I making?           │
+                    │   Capabilities ── What can I now do with this?          │
+                    │                                                         │
+                    └─────────────────────────────────────────────────────────┘
+```
+
+**The Sequence:** Understand → Research → Build
+
+1. **Understand** surfaces distinctions and challenges assumptions, generating questions
+2. **Research** explores those questions, gathering evidence and sources
+3. **Build** uses researched knowledge to construct components and make informed decisions
+
+**Research serves both:**
+- **Understand-oriented questions:** Distinctions, comparisons, assumption validation
+- **Build-oriented questions:** Components, implementation decisions, capability exploration
 
 ### Why
 
