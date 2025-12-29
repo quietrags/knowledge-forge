@@ -279,3 +279,45 @@ Re-plan remaining features:
 2. Persistence (save sessions, load previous work)
 3. Edit/delete functionality for existing items
 4. Context-aware chat input integration
+
+---
+
+## Session: 2025-12-29 (Conceptual Framework Redesign)
+
+### Summary
+Redesigned the Build and Understand mode conceptual frameworks based on user feedback. The new model provides clearer distinctions:
+- **Build** = synthetic (Components + Decisions + Capabilities)
+- **Understand** = analytical (Distinctions + Assumptions + Mental Model)
+- **Research** = exploratory (Questions + Key Ideas + Emergent Questions)
+
+### Decisions
+- **Components over Concepts**: Components are building blocks you combine; concepts were too generic
+- **Decisions over Boundaries**: Decisions capture trade-offs (choice vs alternative + rationale); boundaries were about scope
+- **Capabilities over Answerable Questions**: Capabilities are what you can now do; questions were testing-focused
+- **Distinctions over Misconceptions**: Distinctions clarify A vs B differences; misconceptions were negative-framed
+- **Assumptions over Insights**: Assumptions surface beliefs revised by understanding; insights were too broad
+
+### Work Done
+- [x] Updated MODE_TABS labels in types/index.ts
+- [x] Updated type definitions (Component, Decision, Capability, Distinction, Assumption)
+- [x] Updated mock data with relevant examples for new framework
+- [x] Created ComponentsTab (name, description, usage)
+- [x] Created DecisionsTab (choice, alternative, rationale with visual checkmark/X)
+- [x] Created CapabilitiesTab (capability, enabledBy)
+- [x] Created DistinctionsTab (itemA vs itemB, difference)
+- [x] Created AssumptionsTab (assumed → now understand pattern)
+- [x] Updated store actions (addComponent, addDecision, addCapability, addDistinction, addAssumption)
+- [x] Removed old components (BoundariesTab, ConceptsTab, AnswerableQuestionsTab, MisconceptionsTab, InsightsTab)
+- [x] Verified all tabs render correctly in browser
+
+### Commits
+- `679b25e` - refactor: Replace Build/Understand mode tabs with new conceptual framework
+
+### Learnings
+- **Framing matters**: "Misconception" implies error; "Distinction" implies clarity. Same information, different pedagogical stance.
+- **Synthetic vs Analytical**: Build combines (components + decisions); Understand separates (distinctions + assumptions). Clear mental model.
+
+### Next Session
+1. Re-plan remaining features with user
+2. Consider adding edit/delete functionality for items
+3. Plan API integration for LLM-powered content generation
