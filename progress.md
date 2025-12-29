@@ -243,6 +243,39 @@ app/src/components/
 - **All P2 issues complete** - no open issues remaining
 
 ### Next Session
-1. Add interactivity: clicking question should populate code/canvas panels
-2. Consider additional features: edit modes, add buttons functionality
-3. Potential P3: API integration, persistence, actual LLM interactions
+1. ~~Add interactivity: clicking question should populate code/canvas panels~~ DONE
+2. ~~Add button functionality~~ DONE
+3. Re-plan remaining features (API integration, persistence, LLM interactions)
+
+---
+
+## Session: 2025-12-29 (Interactivity Complete)
+
+### Summary
+Completed interactivity features: question selection now updates code/canvas panels, and all add buttons are functional with inline input UI.
+
+### Work Done
+- [x] **Question selection fix**: Clicking question header now both expands AND selects, updating code/canvas panels
+- [x] **Store CRUD actions**: Added 11 new actions for creating items across all modes
+- [x] **InlineAdd component**: Reusable inline input with support for single and two-field inputs
+- [x] **Wired all add buttons**: All "+ Add" buttons now functional across all 3 modes
+
+### Components Modified
+- QuestionTree: add questions, sub-questions, categories
+- KeyIdeasTab, EmergentQuestionsTab: research mode adds + promote
+- BoundariesTab, ConceptsTab, AnswerableQuestionsTab: build mode adds
+- MisconceptionsTab, InsightsTab: understand mode adds
+
+### Learnings
+- **stopPropagation requires selection too**: When using `e.stopPropagation()` for expand toggle, must also call `onSelect()` or user expects click to select
+- **Two-field pattern**: For items with paired data (term/definition, question/answer), the InlineAdd component supports `secondPlaceholder` + `onAddTwo` props
+
+### Commits
+- `10ed4c5` - feat: Add interactivity - question selection and inline add functionality
+
+### Next Session
+Re-plan remaining features:
+1. API integration (real LLM calls for research/build/understand)
+2. Persistence (save sessions, load previous work)
+3. Edit/delete functionality for existing items
+4. Context-aware chat input integration
