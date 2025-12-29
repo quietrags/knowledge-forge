@@ -590,3 +590,40 @@ Completed Phase 1 with Frontend API Integration, then performed comprehensive co
 1. Merge Phase 1 branches to main (persistence → api-layer → frontend-api)
 2. Start Phase 2: Backend Orchestrator (`knowledge-forge-cm0`)
 3. Implement question routing + journey design logic
+
+---
+
+## Session: 2025-12-29 (Code Review + XSS Fix)
+
+### Summary
+Comprehensive code review of entire codebase against specs. Found and fixed XSS vulnerability in HTML rendering components. Codebase is well-aligned with specs and ready for backend integration.
+
+### Decisions
+- **DOMPurify over react-markdown**: Used DOMPurify for HTML sanitization because narrative content contains rich HTML (not markdown). react-markdown was already installed but unsuitable for HTML sanitization.
+
+### Learnings
+- **dangerouslySetInnerHTML is a security landmine**: Even with mock data, establishing the sanitization pattern early prevents vulnerabilities when real backend data arrives. Always sanitize before rendering.
+
+### Questions Resolved
+- **Is the codebase aligned with specs?**: Yes. All three modes have correct tabs, all components match design.md, types match spec.md. Only finding was XSS vulnerability from pre-sanitization HTML rendering.
+
+### Work Done
+- [x] Comprehensive code review against docs/spec.md, docs/design.md, docs/tech-stack.md
+- [x] Identified XSS vulnerability in NarrativeTab and CanvasPanel
+- [x] Installed dompurify and @types/dompurify
+- [x] Added DOMPurify.sanitize() to NarrativeTab.tsx
+- [x] Added DOMPurify.sanitize() to CanvasPanel.tsx
+- [x] Verified build passes
+
+### Minor Issues Identified (Not Fixed)
+- Duplicate mode color definitions (types/index.ts + store/useStore.ts)
+- Unused MODE_COLORS type import in store
+- Hard-coded `journeyState: 'active'` instead of env-based
+
+### Commits
+- `cd1c80d` - fix(security): Add DOMPurify sanitization to prevent XSS
+
+### Next Session
+1. Merge Phase 1 branches to main
+2. Start Phase 2: Backend Orchestrator
+3. Consider fixing minor issues (duplicate colors, env-based journey state)
