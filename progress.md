@@ -149,6 +149,100 @@ None
 - Open (P2): knowledge-forge-to8, knowledge-forge-2lr, knowledge-forge-1iy, knowledge-forge-4i6, knowledge-forge-3nc, knowledge-forge-84l
 
 ### Next Session
-1. Implement P1 components (Header, PathBar, CodePanel, CanvasPanel)
-2. Create QuestionTree component for research mode (the most complex component)
-3. Add mock data to demonstrate full functionality
+1. ~~Implement P1 components (Header, PathBar, CodePanel, CanvasPanel)~~ DONE
+2. ~~Create QuestionTree component for research mode (the most complex component)~~ DONE
+3. ~~Add mock data to demonstrate full functionality~~ DONE
+
+---
+
+## Session: 2025-12-29 (P1 Components + Critical Bug Fix)
+
+### Summary
+Implemented all 5 P1 components and discovered/fixed a critical Zustand infinite re-render bug caused by `useForgeActions()` returning new object references on every render.
+
+### Decisions
+- **useShallow for action hooks**: Action hooks that return object literals MUST use `useShallow` from `zustand/react/shallow` to prevent infinite re-renders
+- **CSS Modules per component**: Each component gets its own `*.module.css` file for scoped styling, sharing CSS variables from `index.css`
+- **Mock data in separate file**: Created `src/data/mockData.ts` with comprehensive sample data for all three modes
+- **prism-react-renderer over raw Prism**: Provides React-native syntax highlighting with themeable output
+
+### Learnings
+- **Zustand selector anti-pattern**: `useForgeStore((state) => ({ action: state.action }))` creates NEW object on every render → causes infinite loop. Must wrap with `useShallow()` or select primitives directly
+- **React DevTools hides real errors**: Console showed "An error occurred in \<Header\>" but no stack trace. Had to isolate by removing code incrementally to find root cause
+- **Vite HMR masks errors**: Build passes but runtime crashes silently. Screenshot + console inspection required to debug blank screen issues
+
+### Questions Resolved
+- **Why was app showing blank screen after brief flicker?**: `useForgeActions()` created new object reference on every render → infinite re-render → React bailed out. Fixed with `useShallow`.
+- **Which component was breaking?**: Used binary search (simplify App → add components one by one) to isolate Header as the culprit, then identified `useForgeActions()` call.
+
+### Precious Context
+- **Zustand useShallow is REQUIRED for object selectors**: Any selector returning `{ key: value }` needs `useShallow()` or will cause infinite loops. This is NOT obvious from Zustand docs and took significant debugging to discover. Pattern documented in CLAUDE.md.
+- **Debugging blank React screens**: When React shows blank screen with no error overlay: 1) Check console for React DevTools warnings, 2) Simplify to minimal App, 3) Add components back one by one, 4) Check for infinite render loops
+
+### Work Done
+- [x] Header component with mode switcher (knowledge-forge-0ng)
+- [x] PathBar component with learning path breadcrumb (knowledge-forge-8k2)
+- [x] CodePanel with prism-react-renderer syntax highlighting (knowledge-forge-2h9)
+- [x] CanvasPanel with Summary/Diagram tabs (knowledge-forge-9rh)
+- [x] QuestionTree with categories, expandable questions, sources, sub-questions (knowledge-forge-c7p)
+- [x] Mock data for all three modes
+- [x] Fixed critical useShallow bug in useForgeActions
+- [x] Updated CLAUDE.md with architecture and critical patterns
+- [x] Initialized git repo and committed all work
+
+### Beads Updates
+- Closed: knowledge-forge-0ng, knowledge-forge-8k2, knowledge-forge-2h9, knowledge-forge-9rh, knowledge-forge-c7p (all P1 components)
+- Remaining P2: knowledge-forge-to8, knowledge-forge-2lr, knowledge-forge-1iy, knowledge-forge-4i6, knowledge-forge-3nc, knowledge-forge-84l
+
+### Next Session
+1. ~~Implement P2 Research Mode: Key Ideas tab (`knowledge-forge-to8`)~~ DONE
+2. ~~Implement P2 Research Mode: Emergent Questions tab (`knowledge-forge-2lr`)~~ DONE
+3. ~~Implement Build/Understand mode content panels~~ DONE
+4. Add interactivity: clicking question should populate code/canvas panels (store action exists but UI doesn't trigger it)
+
+---
+
+## Session: 2025-12-29 (P2 Components Complete)
+
+### Summary
+Implemented all P2 tab components for all three modes. All 6 P2 beads issues closed. The app now has full UI for all tabs across Research, Build, and Understand modes.
+
+### Work Done
+- [x] **Research Mode Tabs**
+  - KeyIdeasTab: Displays key ideas with titles, descriptions, and relevance to questions
+  - EmergentQuestionsTab: Groups emergent questions by source category with promote action
+- [x] **Build Mode Tabs**
+  - NarrativeTab: Reusable component for Build/Understand knowledge narrative with HTML rendering
+  - BoundariesTab: Q&A format boundary questions
+  - ConceptsTab: Term/definition grid layout
+  - AnswerableQuestionsTab: Numbered list with test-yourself action
+- [x] **Understand Mode Tabs**
+  - MisconceptionsTab: Wrong/right pattern with visual indicators
+  - InsightsTab: Quote-style insight cards with context
+  - MentalModelTab: Decision framework card with HTML content
+- [x] **ChatInput Component**: Extracted from inline App.tsx with mode-specific placeholders
+- [x] Wired all tabs in App.tsx renderContent() with proper switch statements
+
+### Components Created (10 new)
+```
+app/src/components/
+├── KeyIdeasTab/
+├── EmergentQuestionsTab/
+├── NarrativeTab/
+├── BoundariesTab/
+├── ConceptsTab/
+├── AnswerableQuestionsTab/
+├── MisconceptionsTab/
+├── InsightsTab/
+├── MentalModelTab/
+└── ChatInput/
+```
+
+### Beads Updates
+- Closed: knowledge-forge-to8, knowledge-forge-2lr, knowledge-forge-1iy, knowledge-forge-4i6, knowledge-forge-3nc, knowledge-forge-84l
+- **All P2 issues complete** - no open issues remaining
+
+### Next Session
+1. Add interactivity: clicking question should populate code/canvas panels
+2. Consider additional features: edit modes, add buttons functionality
+3. Potential P3: API integration, persistence, actual LLM interactions
