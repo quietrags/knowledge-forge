@@ -1,6 +1,6 @@
 # Knowledge Forge — Tech Stack
 
-**Version:** 0.1 (Frontend Only)
+**Version:** 0.2
 **Date:** 2025-12-29
 
 ---
@@ -29,15 +29,12 @@ app/
 │   │   ├── CodePanel/
 │   │   ├── CanvasPanel/
 │   │   ├── QuestionTree/
-│   │   ├── ComponentsTab/
+│   │   ├── ConceptsTab/
+│   │   ├── AssumptionsTab/
+│   │   ├── ModelTab/
+│   │   ├── ConstructsTab/
 │   │   ├── DecisionsTab/
 │   │   ├── CapabilitiesTab/
-│   │   ├── DistinctionsTab/
-│   │   ├── AssumptionsTab/
-│   │   ├── NarrativeTab/
-│   │   ├── MentalModelTab/
-│   │   ├── KeyIdeasTab/
-│   │   ├── EmergentQuestionsTab/
 │   │   ├── ChatInput/
 │   │   ├── InlineAdd/
 │   │   └── index.ts
@@ -68,7 +65,7 @@ export const useForgeActions = () =>
   useForgeStore(
     useShallow((state) => ({
       setMode: state.setMode,
-      addComponent: state.addComponent,
+      addConstruct: state.addConstruct,
     }))
   )
 
@@ -77,6 +74,91 @@ export const useForgeActions = () =>
   useForgeStore((state) => ({
     setMode: state.setMode,  // New object every render!
   }))
+```
+
+---
+
+## Data Model (v0.2)
+
+### Research Mode
+
+```typescript
+interface Question {
+  id: string
+  question: string
+  status: 'open' | 'investigating' | 'answered'
+  answer?: string
+  sources?: Source[]
+  categoryId?: string
+}
+
+interface CategoryQuestion {
+  id: string
+  category: string
+  insight?: string          // "rise above" synthesis
+  questionIds: string[]
+}
+
+interface AdjacentQuestion {
+  id: string
+  question: string
+  discoveredFrom: string
+}
+```
+
+### Understand Mode
+
+```typescript
+interface Assumption {
+  id: string
+  assumption: string
+  surfaced: string
+  status: 'active' | 'discarded'
+}
+
+interface Concept {
+  id: string
+  name: string
+  definition: string
+  distinguishedFrom?: string
+  isThreshold: boolean
+  fromAssumptionId?: string
+}
+
+interface Model {
+  id: string
+  name: string
+  description: string
+  conceptIds: string[]
+  visualization?: string
+}
+```
+
+### Build Mode
+
+```typescript
+interface Construct {
+  id: string
+  name: string
+  description: string
+  usage: string
+  code?: string
+}
+
+interface Decision {
+  id: string
+  choice: string
+  alternative: string
+  rationale: string
+  constructIds: string[]
+  producesId?: string
+}
+
+interface Capability {
+  id: string
+  capability: string
+  enabledBy: string[]
+}
 ```
 
 ---

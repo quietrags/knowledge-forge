@@ -1,21 +1,21 @@
 # Knowledge Forge — UI Design
 
-**Version:** 0.1 (Frontend Only)
+**Version:** 0.2
 **Date:** 2025-12-29
 
 ---
 
-## Current Layout
+## Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Knowledge Forge                          [build] [understand] [research]   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  PATH  ● LLM Basics → ● Prompting → ◐ Agent Architectures    [Neighbors]   │
+│  PATH  ● Topic A → ● Topic B → ◐ Current Topic                 [Neighbors] │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────────────────────────────────┐  ┌─────────────────────┐  │
-│  │ [Tab 1] [Tab 2] [Tab 3] [Tab 4]              │  │ CODE                │  │
+│  │ [Tab 1] [Tab 2] [Tab 3]                      │  │ CODE                │  │
 │  │                                              │  │                     │  │
 │  │  KNOWLEDGE AREA                              │  │ Syntax-highlighted  │  │
 │  │  (Tab content varies by mode)                │  │ code panel          │  │
@@ -35,34 +35,133 @@
 
 ---
 
-## Mode Tabs
-
-### Build Mode (Green: #059669)
-| Tab | Content |
-|-----|---------|
-| Build Narrative | Knowledge essay with callouts |
-| Components | Building blocks (name, description, usage) |
-| Decisions | Trade-offs (choice ✓, alternative ✗, rationale) |
-| Capabilities | What you can now do (capability, enabledBy) |
-
-### Understand Mode (Blue: #2563EB)
-| Tab | Content |
-|-----|---------|
-| Analysis Essay | Knowledge narrative |
-| Distinctions | A vs B comparisons (itemA, itemB, difference) |
-| Assumptions | Surfaced beliefs (assumed → now understand) |
-| Mental Model | Decision framework |
+## Mode Tabs & Interface Elements
 
 ### Research Mode (Purple: #7C3AED)
-| Tab | Content |
-|-----|---------|
-| Question Tree | Hierarchical questions with expand/collapse |
-| Key Ideas | Concepts that answer multiple questions |
-| Emergent Questions | Questions that arose during research |
+
+| Tab | Purpose | Elements |
+|-----|---------|----------|
+| **Questions** | Core work | Tree: Category > Questions (expandable) |
+| **Key Insights** | Rise-above synthesis | Insights answering multiple questions |
+| **Frontier** | What's next | Adjacent questions discovered |
+
+**Question Tree Structure:**
+```
+Category Question: "How does X work?"
+  ├─ [insight]: "Key insight synthesized from answers"
+  ├─ Question 1 (answered) ✓
+  │    └─ Answer + Sources
+  ├─ Question 2 (investigating) ◐
+  └─ Question 3 (open) ○
+```
+
+**Actions:**
+- `+ Add Question` — Add question to category
+- `+ Add Category` — Create new category
+- `↑ Rise Above` — Synthesize category insight
+- `→ Refine` — Improve question wording
 
 ---
 
-## Implemented Components
+### Understand Mode (Blue: #2563EB)
+
+| Tab | Purpose | Elements |
+|-----|---------|----------|
+| **Concepts** | Atomic units | Name, definition, distinguished-from |
+| **Assumptions** | Background surfaced | Believed → Now understand |
+| **Model** | Integrated view | Concept relationships |
+
+**Concept Card:**
+```
+┌─────────────────────────────────────┐
+│ CONCEPT NAME              [⚡ threshold]
+│ ─────────────────────────────────── │
+│ Definition: What this concept means │
+│                                     │
+│ Distinguished from: What it's NOT   │
+│ From assumption: #assumption-id     │
+└─────────────────────────────────────┘
+```
+
+**Assumption Card:**
+```
+┌─────────────────────────────────────┐
+│ ✗ Assumed: "What was believed"      │
+│ ↓                                   │
+│ ✓ Now understand: "What is true"    │
+│                        [active|discarded]
+└─────────────────────────────────────┘
+```
+
+**Actions:**
+- `+ Surface Assumption` — Identify hidden belief
+- `+ Add Concept` — Define new concept
+- `→ Distinguish` — Clarify A vs B
+- `⚡ Mark Threshold` — Flag as transformative
+- `✗ Discard` — Mark assumption as outdated
+
+---
+
+### Build Mode (Green: #059669)
+
+| Tab | Purpose | Elements |
+|-----|---------|----------|
+| **Constructs** | Building blocks | Name, description, usage, code |
+| **Decisions** | Trade-offs | Choice ✓, Alternative ✗, Rationale |
+| **Capabilities** | What you can do | Capability, enabled-by |
+
+**Construct Card:**
+```
+┌─────────────────────────────────────┐
+│ CONSTRUCT NAME                      │
+│ ─────────────────────────────────── │
+│ Description: What this construct is │
+│ Usage: How to use it                │
+│ Code: [link to code panel]          │
+└─────────────────────────────────────┘
+```
+
+**Decision Card:**
+```
+┌─────────────────────────────────────┐
+│ ✓ Choice: "What we chose"           │
+│ ✗ Alternative: "What we didn't"     │
+│ ─────────────────────────────────── │
+│ Rationale: Why this trade-off       │
+│ Combines: [construct-1, construct-2]│
+│ Produces: [capability-id]           │
+└─────────────────────────────────────┘
+```
+
+**Capability Card:**
+```
+┌─────────────────────────────────────┐
+│ CAPABILITY                          │
+│ ─────────────────────────────────── │
+│ Enabled by: [construct/decision IDs]│
+└─────────────────────────────────────┘
+```
+
+**Actions:**
+- `+ Add Construct` — Identify building block
+- `⚖ Decide` — Record trade-off
+- `+ Add Capability` — Define what you can now do
+
+---
+
+## Theming
+
+Mode switching updates CSS variables:
+
+| Mode | `--accent` | `--accent-bg` |
+|------|------------|---------------|
+| Build | #059669 | #ECFDF5 |
+| Understand | #2563EB | #EFF6FF |
+| Research | #7C3AED | #F3E8FF |
+
+---
+
+## Component List
 
 | Component | Purpose |
 |-----------|---------|
@@ -71,28 +170,24 @@
 | CodePanel | Syntax highlighting (prism-react-renderer) |
 | CanvasPanel | Summary/Diagram tabs |
 | QuestionTree | Expandable categories/questions |
-| ComponentsTab | Build components list |
+| ConceptsTab | Concept cards with distinctions |
+| AssumptionsTab | Before/after belief cards |
+| ModelTab | Concept relationship view |
+| ConstructsTab | Build constructs list |
 | DecisionsTab | Trade-off cards |
 | CapabilitiesTab | Capability list |
-| DistinctionsTab | A vs B comparison cards |
-| AssumptionsTab | Before/after belief cards |
-| NarrativeTab | HTML content rendering |
-| MentalModelTab | Framework display |
-| KeyIdeasTab | Ideas with relevance |
-| EmergentQuestionsTab | Grouped by source |
 | ChatInput | Mode-specific placeholder |
 | InlineAdd | Reusable add form |
 
 ---
 
-## Theming
+## Status Indicators
 
-Mode switching updates CSS variables:
-- `--accent` — Primary color
-- `--accent-bg` — Background tint
-
-| Mode | Accent | Background |
-|------|--------|------------|
-| Build | #059669 | #ECFDF5 |
-| Understand | #2563EB | #EFF6FF |
-| Research | #7C3AED | #F3E8FF |
+| Icon | Meaning |
+|------|---------|
+| ○ | Open / Not started |
+| ◐ | In progress / Investigating |
+| ● | Complete / Answered |
+| ✓ | Chosen / Affirmed |
+| ✗ | Rejected / Discarded |
+| ⚡ | Threshold (transformative) |
