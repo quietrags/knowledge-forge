@@ -528,3 +528,65 @@ Implemented 2 of 3 Phase 1 modules: Backend Persistence and Backend API Layer. C
 1. Implement frontend API integration (API client, SSE handlers, store extensions)
 2. Merge Phase 1 branches to main
 3. Start Phase 2: Backend Orchestrator
+
+---
+
+## Session: 2025-12-29 (Phase 1 Complete + Alignment Pass)
+
+### Summary
+Completed Phase 1 with Frontend API Integration, then performed comprehensive code review against `docs/backend-architecture.md`. Found and fixed 9 alignment bugs between backend and frontend. All builds passing, all Phase 1 modules complete.
+
+### Decisions
+- **SSE payload extraction pattern**: Parse `eventData.payload` not raw event — backend wraps all SSE events in `{type, timestamp, payload}`
+- **Narrative type = streaming model**: Changed from UI-centric `{label, title, meta, content}` to streaming-centric `{prior, delta, full}` — enables incremental narrative updates
+- **camelCase serialization for Python models**: Added `CamelModel` base class with `alias_generator=to_camel` — eliminates frontend field mapping
+- **journeyBrief for titles**: UI components now use `journeyBrief.originalQuestion` instead of `narrative.title` — separation of concerns
+
+### Learnings
+- **Review code against spec before shipping**: The Phase 1 code passed all tests but had 9 spec mismatches — tests validate behavior, not contracts
+- **Pydantic camelCase requires both settings**: `alias_generator=to_camel` + `by_alias=True` in `model_dump()` — easy to miss the serialization step
+- **SSE events need consistent structure**: Frontend handlers were parsing raw payload while backend wrapped in envelope — caused silent data loss
+
+### Questions Resolved
+- **Why would Narrative.title cause errors?**: Backend uses `{prior, delta, full}` for streaming; frontend used `{label, title, meta, content}` for display. Had to update frontend to match.
+- **Why did SSE handlers receive empty objects?**: Was passing full `eventData` to handlers instead of `eventData.payload` — backend wraps events.
+
+### Precious Context
+- **Phase 1 alignment bugs (all fixed)**:
+  1. SSE payload extraction — `eventData.payload` not `eventData`
+  2. Narrative model — `{prior, delta, full}` not `{label, title, meta, content}`
+  3. Field naming — `to_camel` + `by_alias=True` in Pydantic
+  4. PathNode status — `"empty"` not `"frontier"`
+  5. Source.url — optional not required
+  6. /analyze response — returns brief directly, not `{brief: ...}`
+  7. /sessions endpoint — added alias for plural form
+  8. SessionSaveResponse — `{saved, path}` not `{success, sessionId, ...}`
+  9. Missing SSE events — added session.resumed, data.question.updated, etc.
+
+### Work Done
+- [x] **Frontend API Integration** (`kf-frontend-api/`):
+  - `app/src/api/types.ts` — API request/response types + SSE event payloads
+  - `app/src/api/client.ts` — Fetch wrapper with error handling
+  - `app/src/api/streaming.ts` — SSE EventSource handler with reconnection
+  - `app/src/api/hooks.ts` — React hooks for API calls
+  - `app/src/store/useStore.ts` — Extended with API state + SSE event handlers
+- [x] **Alignment Fixes**:
+  - `kf-persistence/models.py` — Added `CamelModel`, fixed PathNode, Source
+  - `kf-api-layer/routes/journey.py` — Fixed analyze response format
+  - `kf-api-layer/routes/session.py` — Fixed save response, added /sessions alias
+  - `kf-frontend-api/` — Fixed SSE parsing, Narrative type, component titles, mockData
+
+### Beads Updates
+- Closed: knowledge-forge-3fe (Frontend API Integration)
+- Closed: 9 bug issues (4mp, 7ls, k91, pav, 0dz, gqb, e0h, dsu, out)
+- Remaining open: 4 Phase 2 feature issues (orchestrator + 3 agents)
+
+### Commits
+- `kf-persistence`: Already committed (CamelModel, PathNode, Source fixes)
+- `kf-api-layer`: Already committed (analyze response, sessions alias, save response)
+- `kf-frontend-api`: `fix: Align frontend with backend spec`
+
+### Next Session
+1. Merge Phase 1 branches to main (persistence → api-layer → frontend-api)
+2. Start Phase 2: Backend Orchestrator (`knowledge-forge-cm0`)
+3. Implement question routing + journey design logic
