@@ -10,13 +10,13 @@ export { EmergentQuestionsTab } from './EmergentQuestionsTab/EmergentQuestionsTa
 
 // Build Mode Tabs
 export { NarrativeTab } from './NarrativeTab/NarrativeTab'
-export { BoundariesTab } from './BoundariesTab/BoundariesTab'
-export { ConceptsTab } from './ConceptsTab/ConceptsTab'
-export { AnswerableQuestionsTab } from './AnswerableQuestionsTab/AnswerableQuestionsTab'
+export { ComponentsTab } from './ComponentsTab/ComponentsTab'
+export { DecisionsTab } from './DecisionsTab/DecisionsTab'
+export { CapabilitiesTab } from './CapabilitiesTab/CapabilitiesTab'
 
 // Understand Mode Tabs
-export { MisconceptionsTab } from './MisconceptionsTab/MisconceptionsTab'
-export { InsightsTab } from './InsightsTab/InsightsTab'
+export { DistinctionsTab } from './DistinctionsTab/DistinctionsTab'
+export { AssumptionsTab } from './AssumptionsTab/AssumptionsTab'
 export { MentalModelTab } from './MentalModelTab/MentalModelTab'
 
 // Shared Components

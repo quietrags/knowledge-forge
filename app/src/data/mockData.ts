@@ -227,25 +227,45 @@ export const mockBuildData: BuildModeData = {
       </div>
     `,
   },
-  boundaries: [
+  components: [
     {
-      id: 'b1',
-      question: 'Layout detection vs OCR preprocessing?',
-      answer: 'Preprocessing cleans input. Layout detection understands semantic structure.',
+      id: 'comp1',
+      name: 'Layout Detection Model',
+      description: 'Identifies semantic regions (headers, paragraphs, tables) before text extraction.',
+      usage: 'First step in the pipeline—feeds region coordinates to the OCR step.',
     },
     {
-      id: 'b2',
-      question: 'When to use DocTags over Markdown?',
-      answer: 'When you need bounding box coordinates for UI interactions.',
+      id: 'comp2',
+      name: 'Reading Order Algorithm',
+      description: 'Determines the sequence to read detected regions.',
+      usage: 'Ensures multi-column documents are read top-to-bottom per column, not left-to-right.',
     },
   ],
-  concepts: [
-    { id: 'c1', term: 'Layout Detection', definition: 'Identifying semantic regions before text extraction.' },
-    { id: 'c2', term: 'Reading Order', definition: 'The sequence to read regions. Columns read top-to-bottom, not left-to-right.' },
+  decisions: [
+    {
+      id: 'd1',
+      choice: 'Layout-first approach',
+      alternative: 'Direct OCR (Tesseract-style)',
+      rationale: 'Direct OCR loses document structure. Layout-first preserves semantic meaning.',
+    },
+    {
+      id: 'd2',
+      choice: 'Markdown output format',
+      alternative: 'DocTags format',
+      rationale: 'Markdown is simpler for RAG pipelines. DocTags needed only when UI requires bounding boxes.',
+    },
   ],
-  questions: [
-    { id: 'aq1', question: 'Why layout detection before text extraction?' },
-    { id: 'aq2', question: 'Which format for a RAG pipeline?' },
+  capabilities: [
+    {
+      id: 'cap1',
+      capability: 'Build a document-to-markdown pipeline',
+      enabledBy: 'Understanding layout detection + reading order',
+    },
+    {
+      id: 'cap2',
+      capability: 'Choose the right output format for a use case',
+      enabledBy: 'Understanding Markdown vs DocTags trade-offs',
+    },
   ],
 }
 
@@ -255,9 +275,9 @@ export const mockBuildData: BuildModeData = {
 
 export const mockUnderstandData: UnderstandModeData = {
   essay: {
-    label: 'Understanding',
+    label: 'Analyzing',
     title: 'Agent Architectures',
-    meta: 'Addressing: failure modes, architecture selection',
+    meta: 'Clarifying: failure modes, architecture selection',
     content: `
       <div class="callout prior">
         You know ReACT: think, act, observe, repeat. You know Reflexion adds self-critique. What's unclear: when does each fail?
@@ -274,16 +294,31 @@ export const mockUnderstandData: UnderstandModeData = {
       </div>
     `,
   },
-  misconceptions: [
+  distinctions: [
     {
-      id: 'm1',
-      question: 'Switch architectures when ReACT fails?',
-      answer: 'Usually no. Most failures are configuration issues. Analyze the trace first.',
+      id: 'dist1',
+      itemA: 'ReACT failure',
+      itemB: 'Architecture mismatch',
+      difference: 'ReACT failures are usually configuration issues (max iterations, tool design). Architecture mismatch is when the problem fundamentally needs planning or reflection.',
+    },
+    {
+      id: 'dist2',
+      itemA: 'Thought step',
+      itemB: 'Logging',
+      difference: 'Thought is active cognition that improves the next action. Logging is passive recording. Remove thought and quality degrades.',
     },
   ],
-  insights: [
-    { id: 'i1', insight: '"Thought isn\'t logging—it\'s cognition that improves action"', context: 'Remove it and quality degrades.' },
-    { id: 'i2', insight: '"Tests beat self-judgment"', context: 'Use external validation when available.' },
+  assumptions: [
+    {
+      id: 'assum1',
+      assumption: 'More sophisticated architecture = better results',
+      surfaced: 'Simpler architectures often work better. Complexity adds failure modes. Start simple, add complexity only when needed.',
+    },
+    {
+      id: 'assum2',
+      assumption: 'Self-critique (Reflexion) is always beneficial',
+      surfaced: 'External validation (tests, type checks) beats self-judgment. Use Reflexion only when external validation is unavailable.',
+    },
   ],
   mentalModel: '<ul><li><strong>Structure problem</strong> → Planning</li><li><strong>Quality problem</strong> → Reflexion</li><li><strong>Speed problem</strong> → Simplify</li></ul>',
 }

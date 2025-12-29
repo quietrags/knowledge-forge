@@ -10,11 +10,11 @@ import {
   KeyIdeasTab,
   EmergentQuestionsTab,
   NarrativeTab,
-  BoundariesTab,
-  ConceptsTab,
-  AnswerableQuestionsTab,
-  MisconceptionsTab,
-  InsightsTab,
+  ComponentsTab,
+  DecisionsTab,
+  CapabilitiesTab,
+  DistinctionsTab,
+  AssumptionsTab,
   MentalModelTab,
   ChatInput,
 } from './components'
@@ -86,11 +86,11 @@ function App() {
         case 0:
           return <NarrativeTab />
         case 1:
-          return <BoundariesTab />
+          return <ComponentsTab />
         case 2:
-          return <ConceptsTab />
+          return <DecisionsTab />
         case 3:
-          return <AnswerableQuestionsTab />
+          return <CapabilitiesTab />
         default:
           return <NarrativeTab />
       }
@@ -102,9 +102,9 @@ function App() {
         case 0:
           return <NarrativeTab />
         case 1:
-          return <MisconceptionsTab />
+          return <DistinctionsTab />
         case 2:
-          return <InsightsTab />
+          return <AssumptionsTab />
         case 3:
           return <MentalModelTab />
         default:

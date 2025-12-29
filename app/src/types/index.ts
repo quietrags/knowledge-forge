@@ -89,50 +89,54 @@ export interface Narrative {
   content: string // HTML/Markdown content
 }
 
-export interface Boundary {
+export interface Component {
   id: string
-  question: string
-  answer: string
+  name: string
+  description: string
+  usage: string // How it's used in the build
 }
 
-export interface Concept {
+export interface Decision {
   id: string
-  term: string
-  definition: string
+  choice: string // What was chosen
+  alternative: string // What was not chosen
+  rationale: string // Why this choice
 }
 
-export interface AnswerableQuestion {
+export interface Capability {
   id: string
-  question: string
+  capability: string // What you can now do/build
+  enabledBy: string // What knowledge enables this
 }
 
 export interface BuildModeData {
   narrative: Narrative
-  boundaries: Boundary[]
-  concepts: Concept[]
-  questions: AnswerableQuestion[]
+  components: Component[]
+  decisions: Decision[]
+  capabilities: Capability[]
 }
 
 // ============================================================================
 // Understand Mode Types
 // ============================================================================
 
-export interface Misconception {
+export interface Distinction {
   id: string
-  question: string
-  answer: string
+  itemA: string // First thing being distinguished
+  itemB: string // Second thing being distinguished
+  difference: string // The key difference
 }
 
-export interface Insight {
+export interface Assumption {
   id: string
-  insight: string
-  context: string
+  assumption: string // What was assumed
+  surfaced: string // What you now realize/understand
 }
 
 export interface UnderstandModeData {
-  essay: Narrative // Similar structure to build narrative
-  misconceptions: Misconception[]
-  insights: Insight[]
+  essay: Narrative // The analysis journey
+  distinctions: Distinction[]
+  assumptions: Assumption[]
   mentalModel: string // HTML/Markdown content
 }
 
@@ -173,8 +177,8 @@ export const MODE_COLORS: Record<Mode, ModeColors> = {
 }
 
 export const MODE_TABS: Record<Mode, string[]> = {
-  build: ['Knowledge Narrative', 'Boundaries', 'Concepts', 'Questions I Can Answer'],
-  understand: ['Knowledge Essay', 'Misconceptions', 'Insights', 'Mental Model'],
+  build: ['Build Narrative', 'Components', 'Decisions', 'Capabilities'],
+  understand: ['Analysis Essay', 'Distinctions', 'Assumptions', 'Mental Model'],
   research: ['Question Tree', 'Key Ideas', 'Emergent Questions'],
 }
 

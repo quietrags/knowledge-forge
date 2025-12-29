@@ -12,11 +12,11 @@ import type {
   Category,
   KeyIdea,
   EmergentQuestion,
-  Boundary,
-  Concept,
-  AnswerableQuestion,
-  Misconception,
-  Insight,
+  Component,
+  Decision,
+  Capability,
+  Distinction,
+  Assumption,
   MODE_COLORS,
 } from '../types'
 
@@ -69,13 +69,13 @@ interface ForgeState {
   promoteEmergentQuestion: (emergentQuestionId: string, targetCategoryId: string) => void
 
   // Build Mode CRUD
-  addBoundary: (question: string, answer: string) => void
-  addConcept: (term: string, definition: string) => void
-  addAnswerableQuestion: (question: string) => void
+  addComponent: (name: string, description: string) => void
+  addDecision: (choice: string, alternative: string) => void
+  addCapability: (capability: string, enabledBy: string) => void
 
   // Understand Mode CRUD
-  addMisconception: (question: string, answer: string) => void
-  addInsight: (insight: string, context: string) => void
+  addDistinction: (itemA: string, itemB: string) => void
+  addAssumption: (assumption: string, surfaced: string) => void
 }
 
 // ============================================================================
@@ -303,92 +303,96 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
   },
 
   // Build Mode CRUD
-  addBoundary: (question, answer) => {
+  addComponent: (name, description) => {
     const { buildData } = get()
     if (!buildData) return
 
-    const newBoundary: Boundary = {
+    const newComponent: Component = {
       id: generateId(),
-      question,
-      answer,
+      name,
+      description,
+      usage: '', // Can be filled in later
     }
 
     set({
       buildData: {
         ...buildData,
-        boundaries: [...buildData.boundaries, newBoundary],
+        components: [...buildData.components, newComponent],
       },
     })
   },
 
-  addConcept: (term, definition) => {
+  addDecision: (choice, alternative) => {
     const { buildData } = get()
     if (!buildData) return
 
-    const newConcept: Concept = {
+    const newDecision: Decision = {
       id: generateId(),
-      term,
-      definition,
+      choice,
+      alternative,
+      rationale: '', // Can be filled in later
     }
 
     set({
       buildData: {
         ...buildData,
-        concepts: [...buildData.concepts, newConcept],
+        decisions: [...buildData.decisions, newDecision],
       },
     })
   },
 
-  addAnswerableQuestion: (question) => {
+  addCapability: (capability, enabledBy) => {
     const { buildData } = get()
     if (!buildData) return
 
-    const newQuestion: AnswerableQuestion = {
+    const newCapability: Capability = {
       id: generateId(),
-      question,
+      capability,
+      enabledBy,
     }
 
     set({
       buildData: {
         ...buildData,
-        questions: [...buildData.questions, newQuestion],
+        capabilities: [...buildData.capabilities, newCapability],
       },
     })
   },
 
   // Understand Mode CRUD
-  addMisconception: (question, answer) => {
+  addDistinction: (itemA, itemB) => {
     const { understandData } = get()
     if (!understandData) return
 
-    const newMisconception: Misconception = {
+    const newDistinction: Distinction = {
       id: generateId(),
-      question,
-      answer,
+      itemA,
+      itemB,
+      difference: '', // Can be filled in later via research
     }
 
     set({
       understandData: {
         ...understandData,
-        misconceptions: [...understandData.misconceptions, newMisconception],
+        distinctions: [...understandData.distinctions, newDistinction],
       },
     })
   },
 
-  addInsight: (insight, context) => {
+  addAssumption: (assumption, surfaced) => {
     const { understandData } = get()
     if (!understandData) return
 
-    const newInsight: Insight = {
+    const newAssumption: Assumption = {
       id: generateId(),
-      insight,
-      context,
+      assumption,
+      surfaced,
     }
 
     set({
       understandData: {
         ...understandData,
-        insights: [...understandData.insights, newInsight],
+        assumptions: [...understandData.assumptions, newAssumption],
       },
     })
   },
@@ -429,11 +433,11 @@ export const useForgeActions = () =>
       addEmergentQuestion: state.addEmergentQuestion,
       promoteEmergentQuestion: state.promoteEmergentQuestion,
       // Build CRUD
-      addBoundary: state.addBoundary,
-      addConcept: state.addConcept,
-      addAnswerableQuestion: state.addAnswerableQuestion,
+      addComponent: state.addComponent,
+      addDecision: state.addDecision,
+      addCapability: state.addCapability,
       // Understand CRUD
-      addMisconception: state.addMisconception,
-      addInsight: state.addInsight,
+      addDistinction: state.addDistinction,
+      addAssumption: state.addAssumption,
     }))
   )
