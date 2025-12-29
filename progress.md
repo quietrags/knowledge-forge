@@ -701,8 +701,23 @@ server/tests/
 - Closed: `knowledge-forge-cm0` (Backend Orchestrator)
 - Remaining: `knowledge-forge-7x2`, `knowledge-forge-614`, `knowledge-forge-b7h` (3 mode agents)
 
+### Code Review (Same Session)
+
+Ran comprehensive code review with 5 parallel agents. Found 4 issues, all scored 75:
+
+| Issue | Resolution |
+|-------|------------|
+| JSON parsing vulnerability (`router.py:224-227`) | **FIXED**: Use regex with bounds checking instead of `split()` |
+| Silent exception handler (`router.py:261-265`) | **FIXED**: Added `logger.warning()` with `exc_info=True` |
+| Inconsistent `use_llm` default | **FIXED**: Aligned orchestrator.py to `False` (matches API layer) |
+| Routing pattern mismatch | **DEFERRED**: Noted below for future decision |
+
 ### Known Issues (Deferred)
 - **Routing pattern mismatch**: `router.py:40` has pattern `r"\bhow does\b.*\bwork\b"` in `UNDERSTAND_PATTERNS`, but `docs/spec.md:133` says "How does X work?" should route to Research. Intentionally deferred - need to decide if spec or implementation is correct for this edge case.
+
+### Commits
+- `41d47ba` - feat: Implement Backend Orchestrator (Phase 2)
+- `249bc4f` - fix: Address code review findings
 
 ### Next Session
 1. Start implementing Research Agent (`knowledge-forge-7x2`)
