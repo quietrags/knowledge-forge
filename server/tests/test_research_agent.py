@@ -59,14 +59,14 @@ def mock_journey_brief():
 
 @pytest.fixture
 def mock_emit():
-    """Create a mock event emitter."""
-    return MagicMock()
+    """Create a mock async event emitter."""
+    return AsyncMock()
 
 
 @pytest.fixture
 def mock_checkpoint_handler():
-    """Create a mock checkpoint handler that auto-approves."""
-    return MagicMock(return_value=CheckpointResponse(approved=True))
+    """Create a mock async checkpoint handler that auto-approves."""
+    return AsyncMock(return_value=CheckpointResponse(approved=True))
 
 
 @pytest.fixture
@@ -75,7 +75,6 @@ def research_agent(mock_session, mock_emit, mock_checkpoint_handler):
     return ResearchAgent(
         session=mock_session,
         emit_event=mock_emit,
-        client=None,  # Will be mocked for API calls
         checkpoint_handler=mock_checkpoint_handler,
     )
 
@@ -288,20 +287,20 @@ class TestResearchAgent:
 
     def test_phase_tools(self, research_agent):
         """Test that each phase has appropriate tools."""
-        decompose_tools = research_agent._get_phase_tools(ResearchPhase.DECOMPOSE)
-        assert any(t["name"] == "emit_category" for t in decompose_tools)
-        assert any(t["name"] == "emit_question" for t in decompose_tools)
+        decompose_tools = research_agent._get_allowed_tools(ResearchPhase.DECOMPOSE)
+        assert "mcp__research__emit_category" in decompose_tools
+        assert "mcp__research__emit_question" in decompose_tools
 
-        answer_tools = research_agent._get_phase_tools(ResearchPhase.ANSWER)
-        assert any(t["name"] == "web_search" for t in answer_tools)
-        assert any(t["name"] == "emit_answer" for t in answer_tools)
+        answer_tools = research_agent._get_allowed_tools(ResearchPhase.ANSWER)
+        assert "WebSearch" in answer_tools
+        assert "mcp__research__emit_answer" in answer_tools
 
-        rise_above_tools = research_agent._get_phase_tools(ResearchPhase.RISE_ABOVE)
-        assert any(t["name"] == "emit_category_insight" for t in rise_above_tools)
-        assert any(t["name"] == "emit_key_insight" for t in rise_above_tools)
+        rise_above_tools = research_agent._get_allowed_tools(ResearchPhase.RISE_ABOVE)
+        assert "mcp__research__emit_category_insight" in rise_above_tools
+        assert "mcp__research__emit_key_insight" in rise_above_tools
 
-        expand_tools = research_agent._get_phase_tools(ResearchPhase.EXPAND)
-        assert any(t["name"] == "emit_adjacent_question" for t in expand_tools)
+        expand_tools = research_agent._get_allowed_tools(ResearchPhase.EXPAND)
+        assert "mcp__research__emit_adjacent_question" in expand_tools
 
     @pytest.mark.asyncio
     async def test_transition_evaluation_forward(self, research_agent, mock_journey_brief):
@@ -375,7 +374,7 @@ class TestResearchAgent:
         # Create new agent and restore
         new_agent = ResearchAgent(
             session=research_agent.session,
-            emit_event=MagicMock(),
+            emit_event=AsyncMock(),
         )
         new_agent.journey_brief = mock_journey_brief
         await new_agent.restore_state(state)

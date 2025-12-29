@@ -1,20 +1,38 @@
 """
 Research Agent Implementation.
 
-Implements the deep research pipeline using the phase graph pattern.
+Implements the deep research pipeline using the Claude Agent SDK
+and phase graph pattern.
+
 See docs/agent-architecture.md for the architectural specification.
 """
 
 from __future__ import annotations
 
-from typing import AsyncGenerator, Optional, Callable
+from typing import AsyncGenerator, Optional, Callable, Any, Awaitable
+import uuid
 
-from anthropic import Anthropic
+from claude_agent_sdk import (
+    ClaudeSDKClient,
+    ClaudeAgentOptions,
+    AssistantMessage,
+    TextBlock,
+    ToolUseBlock,
+    ResultMessage,
+    tool,
+    create_sdk_mcp_server,
+)
 
 from server.persistence import (
     JourneyDesignBrief,
     Session,
     ResearchModeData,
+    CategoryQuestion,
+    Question,
+    Source,
+    KeyInsight,
+    AdjacentQuestion,
+    CodeContent,
 )
 from server.api.streaming import SSEEvent, agent_thinking, agent_speaking
 from server.agents.base import (
@@ -40,20 +58,13 @@ from .prompts import (
     EXPAND_REENTRY_PROMPT,
     DECOMPOSE_CHECKPOINT_MESSAGE,
 )
-from .tools import (
-    get_decompose_tools,
-    get_answer_tools,
-    get_rise_above_tools,
-    get_expand_tools,
-    ResearchToolHandler,
-)
 
 
 class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
     """
     Research Agent for Knowledge Forge.
 
-    Executes the deep research pipeline:
+    Executes the deep research pipeline using the Claude Agent SDK:
     DECOMPOSE → ANSWER → RISE_ABOVE → EXPAND → COMPLETE
 
     With backward transitions for:
@@ -92,12 +103,11 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
     def __init__(
         self,
         session: Session,
-        emit_event: Callable[[SSEEvent], None],
-        client: Optional[Anthropic] = None,
-        checkpoint_handler: Optional[Callable[[Checkpoint], CheckpointResponse]] = None,
+        emit_event: Callable[[SSEEvent], Awaitable[None]],
+        checkpoint_handler: Optional[Callable[[Checkpoint], Awaitable[CheckpointResponse]]] = None,
     ):
-        super().__init__(session, emit_event, client, checkpoint_handler)
-        self._tool_handler: Optional[ResearchToolHandler] = None
+        super().__init__(session, emit_event, checkpoint_handler)
+        self._mcp_server = None
 
     async def initialize(self, journey_brief: JourneyDesignBrief) -> None:
         """Initialize the agent for a new research journey."""
@@ -109,18 +119,313 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
                 topic=journey_brief.original_question,
             )
 
-        # Create tool handler
-        self._tool_handler = ResearchToolHandler(
-            self.phase_context,
-            self.emit,
-        )
+        # Create MCP server with custom tools
+        self._mcp_server = self._create_mcp_server()
 
     def _create_phase_context(self) -> ResearchPhaseContext:
         """Create the initial phase context."""
         return ResearchPhaseContext()
 
     # =========================================================================
-    # Phase Execution
+    # MCP Server with Custom Tools
+    # =========================================================================
+
+    def _create_mcp_server(self):
+        """
+        Create an MCP server with custom tools for research phases.
+
+        Tools emit SSE events and update phase context state.
+        """
+        # Capture reference to agent for tool handlers
+        agent = self
+
+        @tool(
+            "emit_category",
+            "Add a research category to the question tree",
+            {"category": str, "insight_question": str}
+        )
+        async def emit_category(args: dict[str, Any]) -> dict[str, Any]:
+            """Add a new research category."""
+            category = CategoryQuestion(
+                id=str(uuid.uuid4()),
+                category=args["category"],
+                insight=None,
+                question_ids=[],
+            )
+            agent.phase_context.add_category(category)
+
+            # Emit SSE event
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.category.added",
+                payload=category.model_dump(by_alias=True),
+            ))
+
+            return {"content": [{"type": "text", "text": f"Category '{args['category']}' added with ID {category.id}"}]}
+
+        @tool(
+            "emit_question",
+            "Add a research question to a category",
+            {"question": str, "category_id": str, "frame": str, "priority": str}
+        )
+        async def emit_question(args: dict[str, Any]) -> dict[str, Any]:
+            """Add a research question."""
+            question = Question(
+                id=str(uuid.uuid4()),
+                question=args["question"],
+                status="open",
+                category_id=args["category_id"],
+            )
+            agent.phase_context.add_question(question)
+
+            # Update category's question_ids
+            for cat in agent.phase_context.categories:
+                if cat.id == args["category_id"]:
+                    cat.question_ids.append(question.id)
+                    break
+
+            # Emit SSE event
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.question.added",
+                payload={
+                    "question": question.model_dump(by_alias=True),
+                    "categoryId": args["category_id"],
+                    "frame": args["frame"],
+                    "priority": args["priority"],
+                },
+            ))
+
+            return {"content": [{"type": "text", "text": f"Question added with ID {question.id}"}]}
+
+        @tool(
+            "mark_decompose_complete",
+            "Mark question decomposition as complete",
+            {"summary": str}
+        )
+        async def mark_decompose_complete(args: dict[str, Any]) -> dict[str, Any]:
+            """Signal decomposition is ready for approval."""
+            return {"content": [{"type": "text", "text": f"Decomposition complete: {len(agent.phase_context.categories)} categories, {len(agent.phase_context.questions)} questions"}]}
+
+        @tool(
+            "emit_answer",
+            "Record an answer to a research question",
+            {
+                "question_id": str,
+                "answer": str,
+                "sources": list,  # List of source dicts
+                "confidence": str,
+            }
+        )
+        async def emit_answer(args: dict[str, Any]) -> dict[str, Any]:
+            """Record an answer with sources."""
+            question_id = args["question_id"]
+
+            # Find and update the question
+            for q in agent.phase_context.questions:
+                if q.id == question_id:
+                    q.status = "answered"
+                    q.answer = args["answer"]
+                    q.sources = [Source(**s) for s in args.get("sources", [])]
+                    break
+
+            agent.phase_context.mark_question_answered(question_id)
+
+            # Emit SSE event
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.question.answered",
+                payload={
+                    "questionId": question_id,
+                    "answer": args["answer"],
+                    "sources": args.get("sources", []),
+                    "confidence": args.get("confidence", "medium"),
+                },
+            ))
+
+            return {"content": [{"type": "text", "text": f"Answer recorded for question {question_id}"}]}
+
+        @tool(
+            "skip_question",
+            "Skip a question that cannot be adequately answered",
+            {"question_id": str, "reason": str}
+        )
+        async def skip_question(args: dict[str, Any]) -> dict[str, Any]:
+            """Skip a question."""
+            agent.phase_context.skipped_question_ids.add(args["question_id"])
+
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.question.updated",
+                payload={
+                    "questionId": args["question_id"],
+                    "status": "skipped",
+                    "reason": args["reason"],
+                },
+            ))
+
+            return {"content": [{"type": "text", "text": f"Question {args['question_id']} skipped"}]}
+
+        @tool(
+            "flag_new_category",
+            "Flag that a new category was discovered during answering",
+            {"category_name": str, "reason": str}
+        )
+        async def flag_new_category(args: dict[str, Any]) -> dict[str, Any]:
+            """Trigger backward transition to DECOMPOSE."""
+            agent.phase_context.new_category_pending = args["category_name"]
+            agent.phase_context.backward_trigger_detail = args["reason"]
+
+            return {"content": [{"type": "text", "text": f"New category flagged: {args['category_name']} - will trigger backward transition"}]}
+
+        @tool(
+            "mark_answer_phase_complete",
+            "Mark the answer phase as complete",
+            {"summary": str}
+        )
+        async def mark_answer_complete(args: dict[str, Any]) -> dict[str, Any]:
+            """Signal answer phase is complete."""
+            unanswered = agent.phase_context.get_unanswered_questions()
+            if len(unanswered) == 0:
+                agent.phase_context.high_priority_complete = True
+            return {"content": [{"type": "text", "text": f"Answer phase complete. Remaining: {len(unanswered)} questions"}]}
+
+        @tool(
+            "emit_category_insight",
+            "Record a synthesized insight for a category",
+            {"category_id": str, "insight": str}
+        )
+        async def emit_category_insight(args: dict[str, Any]) -> dict[str, Any]:
+            """Add category insight."""
+            category_id = args["category_id"]
+            insight = args["insight"]
+
+            for cat in agent.phase_context.categories:
+                if cat.id == category_id:
+                    cat.insight = insight
+                    break
+
+            agent.phase_context.category_insights[category_id] = insight
+
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.category.insight",
+                payload={"categoryId": category_id, "insight": insight},
+            ))
+
+            return {"content": [{"type": "text", "text": f"Insight added for category {category_id}"}]}
+
+        @tool(
+            "emit_key_insight",
+            "Record a cross-cutting key insight",
+            {"title": str, "description": str, "relevance": str}
+        )
+        async def emit_key_insight(args: dict[str, Any]) -> dict[str, Any]:
+            """Add key insight."""
+            insight = KeyInsight(
+                id=str(uuid.uuid4()),
+                title=args["title"],
+                description=args["description"],
+                relevance=args.get("relevance", ""),
+            )
+
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.key_insight.added",
+                payload=insight.model_dump(by_alias=True),
+            ))
+
+            return {"content": [{"type": "text", "text": f"Key insight added: {args['title']}"}]}
+
+        @tool(
+            "flag_unanswered_needed",
+            "Flag that specific questions must be answered before synthesis",
+            {"question_ids": list, "reason": str}
+        )
+        async def flag_unanswered_needed(args: dict[str, Any]) -> dict[str, Any]:
+            """Trigger backward transition to ANSWER."""
+            agent.phase_context.unanswered_for_synthesis = args["question_ids"]
+            agent.phase_context.backward_trigger_detail = args["reason"]
+
+            return {"content": [{"type": "text", "text": f"Flagged {len(args['question_ids'])} questions needed - will trigger backward transition"}]}
+
+        @tool(
+            "mark_synthesis_complete",
+            "Mark synthesis phase as complete",
+            {"summary": str}
+        )
+        async def mark_synthesis_complete(args: dict[str, Any]) -> dict[str, Any]:
+            """Signal synthesis is complete."""
+            agent.phase_context.insights_complete = True
+            return {"content": [{"type": "text", "text": "Synthesis complete"}]}
+
+        @tool(
+            "emit_adjacent_question",
+            "Add an adjacent question to the frontier",
+            {"question": str, "discovered_from": str}
+        )
+        async def emit_adjacent_question(args: dict[str, Any]) -> dict[str, Any]:
+            """Add frontier question."""
+            aq = AdjacentQuestion(
+                id=str(uuid.uuid4()),
+                question=args["question"],
+                discovered_from=args["discovered_from"],
+            )
+            agent.phase_context.adjacent_questions.append(aq)
+
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.adjacent_question.added",
+                payload=aq.model_dump(by_alias=True),
+            ))
+
+            return {"content": [{"type": "text", "text": f"Adjacent question added: {args['question'][:50]}..."}]}
+
+        @tool(
+            "mark_expand_complete",
+            "Mark expansion phase as complete",
+            {"summary": str}
+        )
+        async def mark_expand_complete(args: dict[str, Any]) -> dict[str, Any]:
+            """Signal expansion is complete."""
+            agent.phase_context.frontier_populated = True
+            return {"content": [{"type": "text", "text": f"Expansion complete: {len(agent.phase_context.adjacent_questions)} frontier questions"}]}
+
+        @tool(
+            "get_phase_context",
+            "Get context from the current or previous phases",
+            {"phase_name": str}
+        )
+        async def get_phase_context(args: dict[str, Any]) -> dict[str, Any]:
+            """Retrieve phase context for reference."""
+            phase = args["phase_name"].upper()
+
+            if phase == "DECOMPOSE":
+                return {"content": [{"type": "text", "text": f"Categories: {agent._format_categories()}\n\nQuestions: {agent._format_questions()}"}]}
+            elif phase == "ANSWER":
+                return {"content": [{"type": "text", "text": f"Answered: {agent._format_answered_questions()}"}]}
+            elif phase == "RISE_ABOVE":
+                return {"content": [{"type": "text", "text": f"Insights: {agent._format_insights()}"}]}
+            else:
+                return {"content": [{"type": "text", "text": f"Unknown phase: {phase}"}]}
+
+        # Create MCP server with all tools
+        return create_sdk_mcp_server(
+            name="research-agent",
+            version="1.0.0",
+            tools=[
+                emit_category,
+                emit_question,
+                mark_decompose_complete,
+                emit_answer,
+                skip_question,
+                flag_new_category,
+                mark_answer_complete,
+                emit_category_insight,
+                emit_key_insight,
+                flag_unanswered_needed,
+                mark_synthesis_complete,
+                emit_adjacent_question,
+                mark_expand_complete,
+                get_phase_context,
+            ]
+        )
+
+    # =========================================================================
+    # Phase Execution using Claude Agent SDK
     # =========================================================================
 
     async def _execute_phase(
@@ -129,53 +434,49 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
         message: str,
         context: dict,
     ) -> AsyncGenerator[SSEEvent, None]:
-        """Execute a single phase of the research pipeline."""
+        """Execute a single phase using the Claude Agent SDK."""
 
-        if phase == ResearchPhase.DECOMPOSE:
-            async for event in self._execute_decompose(message, context):
-                yield event
-        elif phase == ResearchPhase.ANSWER:
-            async for event in self._execute_answer(message, context):
-                yield event
-        elif phase == ResearchPhase.RISE_ABOVE:
-            async for event in self._execute_rise_above(message, context):
-                yield event
-        elif phase == ResearchPhase.EXPAND:
-            async for event in self._execute_expand(message, context):
-                yield event
+        yield agent_thinking(f"Executing {phase.value} phase...")
 
-    async def _execute_decompose(
-        self,
-        message: str,
-        context: dict,
-    ) -> AsyncGenerator[SSEEvent, None]:
-        """Execute the DECOMPOSE phase."""
-        yield agent_thinking("Breaking down your question into research categories...")
+        # Get phase-specific configuration
+        visit_count = self.phase_context.get_visit_count(phase)
+        prompt = self._get_phase_prompt(phase, visit_count)
+        allowed_tools = self._get_allowed_tools(phase)
 
-        # Get appropriate prompt
-        visit_count = self.phase_context.get_visit_count(ResearchPhase.DECOMPOSE)
-        prompt = self._get_phase_prompt(ResearchPhase.DECOMPOSE, visit_count)
-
-        # Get tools for this phase
-        tools = self._get_phase_tools(ResearchPhase.DECOMPOSE)
-
-        # Execute with Claude
-        async for event in self._run_agent_loop(
+        # Build SDK options
+        options = ClaudeAgentOptions(
             system_prompt=SYSTEM_PROMPT,
-            user_prompt=prompt,
-            tools=tools,
-        ):
-            yield event
+            allowed_tools=allowed_tools,
+            mcp_servers={"research": self._mcp_server},
+        )
 
-        # Handle checkpoint (blocking)
-        if not self.phase_context.question_tree_approved:
+        # Run the agent
+        async with ClaudeSDKClient(options=options) as client:
+            await client.query(prompt)
+
+            async for message in client.receive_response():
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            # Stream text to frontend
+                            yield agent_speaking(block.text)
+                        elif isinstance(block, ToolUseBlock):
+                            # Tool calls are handled by the SDK
+                            # Our MCP tools emit SSE events internally
+                            pass
+
+                elif isinstance(message, ResultMessage):
+                    # Phase complete
+                    break
+
+        # Handle checkpoint if needed
+        if phase == ResearchPhase.DECOMPOSE and not self.phase_context.question_tree_approved:
             checkpoint = Checkpoint(
                 id="decompose_approval",
                 message=self._format_decompose_checkpoint(),
                 options=["Proceed", "Add questions", "Remove questions", "Adjust priorities"],
             )
 
-            # Emit checkpoint event
             yield SSEEvent(
                 type="phase.checkpoint",
                 payload={
@@ -186,159 +487,44 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
                 },
             )
 
-            # Wait for user response
             response = await self._handle_checkpoint(checkpoint)
-
             if response.approved:
                 self.phase_context.question_tree_approved = True
-            elif response.action == "modify":
-                # User wants changes - will stay in this phase
-                pass
 
-    async def _execute_answer(
-        self,
-        message: str,
-        context: dict,
-    ) -> AsyncGenerator[SSEEvent, None]:
-        """Execute the ANSWER phase."""
-        unanswered = self.phase_context.get_unanswered_questions()
-        yield agent_thinking(f"Researching {len(unanswered)} questions...")
+    def _get_allowed_tools(self, phase: ResearchPhase) -> list[str]:
+        """Get allowed tools for a phase."""
+        # Base tools available in all phases
+        base_tools = [
+            "mcp__research__get_phase_context",
+        ]
 
-        # Get appropriate prompt
-        visit_count = self.phase_context.get_visit_count(ResearchPhase.ANSWER)
-        prompt = self._get_phase_prompt(ResearchPhase.ANSWER, visit_count)
-
-        # Get tools for this phase
-        tools = self._get_phase_tools(ResearchPhase.ANSWER)
-
-        # Execute with Claude (with web search enabled)
-        async for event in self._run_agent_loop(
-            system_prompt=SYSTEM_PROMPT,
-            user_prompt=prompt,
-            tools=tools,
-            enable_web_search=True,
-        ):
-            yield event
-
-    async def _execute_rise_above(
-        self,
-        message: str,
-        context: dict,
-    ) -> AsyncGenerator[SSEEvent, None]:
-        """Execute the RISE_ABOVE phase."""
-        yield agent_thinking("Synthesizing insights from your research...")
-
-        # Get appropriate prompt
-        visit_count = self.phase_context.get_visit_count(ResearchPhase.RISE_ABOVE)
-        prompt = self._get_phase_prompt(ResearchPhase.RISE_ABOVE, visit_count)
-
-        # Get tools for this phase
-        tools = self._get_phase_tools(ResearchPhase.RISE_ABOVE)
-
-        # Execute with Claude
-        async for event in self._run_agent_loop(
-            system_prompt=SYSTEM_PROMPT,
-            user_prompt=prompt,
-            tools=tools,
-        ):
-            yield event
-
-    async def _execute_expand(
-        self,
-        message: str,
-        context: dict,
-    ) -> AsyncGenerator[SSEEvent, None]:
-        """Execute the EXPAND phase."""
-        yield agent_thinking("Discovering adjacent questions for further exploration...")
-
-        # Get appropriate prompt
-        visit_count = self.phase_context.get_visit_count(ResearchPhase.EXPAND)
-        prompt = self._get_phase_prompt(ResearchPhase.EXPAND, visit_count)
-
-        # Get tools for this phase
-        tools = self._get_phase_tools(ResearchPhase.EXPAND)
-
-        # Execute with Claude
-        async for event in self._run_agent_loop(
-            system_prompt=SYSTEM_PROMPT,
-            user_prompt=prompt,
-            tools=tools,
-        ):
-            yield event
-
-    # =========================================================================
-    # Agent Loop (Claude API Integration)
-    # =========================================================================
-
-    async def _run_agent_loop(
-        self,
-        system_prompt: str,
-        user_prompt: str,
-        tools: list[dict],
-        enable_web_search: bool = False,
-    ) -> AsyncGenerator[SSEEvent, None]:
-        """
-        Run the agentic loop with Claude.
-
-        Handles tool calls, streaming, and state updates.
-        """
-        messages = [{"role": "user", "content": user_prompt}]
-
-        # Build API call parameters
-        api_params = {
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 8192,
-            "system": system_prompt,
-            "messages": messages,
-            "tools": tools,
+        phase_tools = {
+            ResearchPhase.DECOMPOSE: [
+                "mcp__research__emit_category",
+                "mcp__research__emit_question",
+                "mcp__research__mark_decompose_complete",
+            ],
+            ResearchPhase.ANSWER: [
+                "WebSearch",
+                "WebFetch",
+                "mcp__research__emit_answer",
+                "mcp__research__skip_question",
+                "mcp__research__flag_new_category",
+                "mcp__research__mark_answer_phase_complete",
+            ],
+            ResearchPhase.RISE_ABOVE: [
+                "mcp__research__emit_category_insight",
+                "mcp__research__emit_key_insight",
+                "mcp__research__flag_unanswered_needed",
+                "mcp__research__mark_synthesis_complete",
+            ],
+            ResearchPhase.EXPAND: [
+                "mcp__research__emit_adjacent_question",
+                "mcp__research__mark_expand_complete",
+            ],
         }
 
-        # Enable web search if requested (uses Claude's built-in connector)
-        # Note: In production, this would use the appropriate API parameters
-        # for web search integration
-
-        while True:
-            # Call Claude API
-            response = self.client.messages.create(**api_params)
-
-            # Process response
-            assistant_content = []
-            has_tool_use = False
-
-            for block in response.content:
-                if block.type == "text":
-                    # Stream text to UI
-                    yield agent_speaking(block.text)
-                    assistant_content.append(block)
-
-                elif block.type == "tool_use":
-                    has_tool_use = True
-                    assistant_content.append(block)
-
-                    # Handle tool call
-                    tool_result = await self._tool_handler.handle_tool_call(
-                        block.name,
-                        block.input,
-                    )
-
-                    # Add tool result to messages
-                    messages.append({"role": "assistant", "content": assistant_content})
-                    messages.append({
-                        "role": "user",
-                        "content": [{
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": str(tool_result),
-                        }],
-                    })
-
-            # If no tool use, we're done with this loop
-            if not has_tool_use:
-                break
-
-            # Continue loop with tool results
-            api_params["messages"] = messages
-            assistant_content = []
+        return base_tools + phase_tools.get(phase, [])
 
     # =========================================================================
     # Prompt Generation
@@ -405,18 +591,6 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
 
         return ""
 
-    def _get_phase_tools(self, phase: ResearchPhase) -> list[dict]:
-        """Get available tools for a phase."""
-        if phase == ResearchPhase.DECOMPOSE:
-            return get_decompose_tools()
-        elif phase == ResearchPhase.ANSWER:
-            return get_answer_tools()
-        elif phase == ResearchPhase.RISE_ABOVE:
-            return get_rise_above_tools()
-        elif phase == ResearchPhase.EXPAND:
-            return get_expand_tools()
-        return []
-
     # =========================================================================
     # Transition Evaluation
     # =========================================================================
@@ -447,8 +621,7 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             return self.phase_context.should_trigger_backward_to_answer()
 
         elif condition == "synthesis_reveals_missing_category":
-            # This is a more severe case - caught during synthesis
-            return False  # Handled by synthesis_requires_more_answers usually
+            return False  # Handled by other triggers
 
         return False
 
@@ -488,14 +661,12 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
 
     def _format_newly_answered_questions(self) -> str:
         """Format questions answered since last RISE_ABOVE visit."""
-        # For now, return all answered - could track more precisely
         return self._format_answered_questions()
 
     def _format_insights(self) -> str:
         """Format category insights for prompt."""
         lines = []
         for cat_id, insight in self.phase_context.category_insights.items():
-            # Find category name
             cat_name = next(
                 (c.category for c in self.phase_context.categories if c.id == cat_id),
                 cat_id,
@@ -510,7 +681,7 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
 
     def _format_decompose_checkpoint(self) -> str:
         """Format the decompose checkpoint message."""
-        num_high = sum(1 for _ in self.phase_context.questions)  # Simplified
+        num_high = len(self.phase_context.questions)  # Simplified
         return DECOMPOSE_CHECKPOINT_MESSAGE.format(
             num_categories=len(self.phase_context.categories),
             num_questions=len(self.phase_context.questions),
@@ -550,20 +721,13 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
     def get_state(self) -> dict:
         """Get current state for persistence."""
         base_state = super().get_state()
-
-        # Add research-specific state
         base_state["mode_data"] = {
             "topic": self.journey_brief.original_question if self.journey_brief else "",
         }
-
         return base_state
 
     async def restore_state(self, state: dict) -> None:
         """Restore agent from persisted state."""
         await super().restore_state(state)
-
-        # Restore tool handler
-        self._tool_handler = ResearchToolHandler(
-            self.phase_context,
-            self.emit,
-        )
+        # Recreate MCP server for restored agent
+        self._mcp_server = self._create_mcp_server()

@@ -1,7 +1,7 @@
 """
 Base Agent for Knowledge Forge.
 
-Defines the phase graph pattern that all mode agents must follow.
+Defines the phase graph pattern using the Claude Agent SDK.
 See docs/agent-architecture.md for full specification.
 """
 
@@ -18,9 +18,8 @@ from typing import (
     Optional,
     TypeVar,
     Any,
+    Awaitable,
 )
-
-from anthropic import Anthropic
 
 from server.persistence import JourneyDesignBrief, Session
 from server.api.streaming import SSEEvent, agent_thinking, agent_complete
@@ -154,6 +153,36 @@ ContextType = TypeVar("ContextType", bound=BasePhaseContext)
 
 
 # =============================================================================
+# SSE Event Emitter Protocol
+# =============================================================================
+
+class SSEEventEmitter:
+    """
+    Wrapper for emitting SSE events.
+
+    Used by agents and tools to send real-time updates to the frontend.
+    """
+
+    def __init__(self, emit_fn: Callable[[SSEEvent], Awaitable[None]]):
+        self._emit = emit_fn
+        self._queue: list[SSEEvent] = []
+
+    async def emit(self, event: SSEEvent) -> None:
+        """Emit an SSE event."""
+        await self._emit(event)
+
+    def emit_sync(self, event: SSEEvent) -> None:
+        """Queue an event for later emission (for sync tool handlers)."""
+        self._queue.append(event)
+
+    async def flush(self) -> None:
+        """Emit all queued events."""
+        for event in self._queue:
+            await self._emit(event)
+        self._queue.clear()
+
+
+# =============================================================================
 # Base Agent
 # =============================================================================
 
@@ -161,12 +190,14 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
     """
     Base class for all Knowledge Forge mode agents.
 
+    Uses the Claude Agent SDK for agentic loops with custom tools.
+
     Implements the phase graph pattern with support for:
     - Forward and backward transitions
     - Phase context persistence
     - Re-entry behavior
     - Checkpoints
-    - SSE event emission
+    - SSE event emission via custom tools
 
     Subclasses must implement:
     - Phase enum
@@ -174,29 +205,27 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
     - _execute_phase() for each phase
     - _evaluate_transition_condition()
     - _get_phase_prompt()
-    - _get_phase_tools()
     - _create_phase_context()
+    - _create_phase_tools()
     """
 
     def __init__(
         self,
         session: Session,
-        emit_event: Callable[[SSEEvent], None],
-        client: Optional[Anthropic] = None,
-        checkpoint_handler: Optional[Callable[[Checkpoint], CheckpointResponse]] = None,
+        emit_event: Callable[[SSEEvent], Awaitable[None]],
+        checkpoint_handler: Optional[Callable[[Checkpoint], Awaitable[CheckpointResponse]]] = None,
     ):
         """
         Initialize the agent.
 
         Args:
             session: The session this agent is working in
-            emit_event: Callback to emit SSE events
-            client: Anthropic client for LLM calls
-            checkpoint_handler: Callback to handle checkpoints (blocking)
+            emit_event: Async callback to emit SSE events
+            checkpoint_handler: Async callback to handle checkpoints (blocking)
         """
         self.session = session
-        self.emit = emit_event
-        self._client = client
+        self._emit_fn = emit_event
+        self.emitter = SSEEventEmitter(emit_event)
         self._checkpoint_handler = checkpoint_handler
 
         # State (initialized in initialize())
@@ -204,13 +233,6 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         self.current_phase: Optional[PhaseType] = None
         self.phase_context: Optional[ContextType] = None
         self._transition_reason: Optional[str] = None
-
-    @property
-    def client(self) -> Anthropic:
-        """Lazy-load Anthropic client."""
-        if self._client is None:
-            self._client = Anthropic()
-        return self._client
 
     # =========================================================================
     # Abstract Properties - Must be defined by subclasses
@@ -260,8 +282,8 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         """
         Execute a single phase, yielding SSE events.
 
-        This is where the agent's main work happens. Each phase
-        has different behavior and may use different tools.
+        This is where the agent's main work happens using the Claude Agent SDK.
+        Each phase has different behavior and may use different tools.
         """
         pass
 
@@ -287,15 +309,6 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         Get the prompt for a phase.
 
         Returns different prompts for initial entry vs re-entry.
-        """
-        pass
-
-    @abstractmethod
-    def _get_phase_tools(self, phase: PhaseType) -> list[dict]:
-        """
-        Get available tools for a phase.
-
-        Different phases may have access to different tools.
         """
         pass
 
@@ -400,7 +413,7 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         Process a user message through the phase graph.
 
         This is the main entry point for agent work. It:
-        1. Executes the current phase
+        1. Executes the current phase using Claude Agent SDK
         2. Evaluates transitions (forward and backward)
         3. Handles checkpoints if required
         4. Continues until complete phase is reached
@@ -425,6 +438,9 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
                 context,
             ):
                 yield event
+
+            # Flush any queued events from tools
+            await self.emitter.flush()
 
             # Evaluate transitions
             next_phase = self._evaluate_transitions()
@@ -518,7 +534,7 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         If no checkpoint handler is configured, auto-approves.
         """
         if self._checkpoint_handler:
-            return self._checkpoint_handler(checkpoint)
+            return await self._checkpoint_handler(checkpoint)
 
         # Default: auto-approve
         return CheckpointResponse(approved=True)
