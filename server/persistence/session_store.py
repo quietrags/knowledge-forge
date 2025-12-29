@@ -248,5 +248,5 @@ class SessionStore:
         """Save session to backend."""
         self.backend.write_session(
             session.id,
-            session.model_dump(mode="json"),
+            session.model_dump(mode="json", by_alias=True),
         )

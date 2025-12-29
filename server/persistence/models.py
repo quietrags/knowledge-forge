@@ -5,8 +5,21 @@ These mirror the TypeScript types in the frontend.
 
 from datetime import datetime
 from typing import Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 import uuid
+
+
+# =============================================================================
+# Base Model with camelCase serialization
+# =============================================================================
+
+class CamelModel(BaseModel):
+    """Base model that serializes to camelCase for frontend compatibility."""
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,  # Accept both snake_case and camelCase on input
+    )
 
 
 # =============================================================================
@@ -23,7 +36,7 @@ QuestionStatus = Literal["open", "investigating", "answered"]
 # Journey Design Brief
 # =============================================================================
 
-class JourneyDesignBrief(BaseModel):
+class JourneyDesignBrief(CamelModel):
     """The result of analyzing a user's question and designing their journey."""
     original_question: str
     ideal_answer: str
@@ -38,42 +51,42 @@ class JourneyDesignBrief(BaseModel):
 # Shared Content Types
 # =============================================================================
 
-class Source(BaseModel):
+class Source(CamelModel):
     """A research source with credibility info."""
     title: str
-    url: str
+    url: Optional[str] = None  # Made optional to match frontend
     credibility: Literal["primary", "high", "medium", "low"]
     snippet: Optional[str] = None
 
 
-class CodeContent(BaseModel):
+class CodeContent(CamelModel):
     """Code displayed in the code panel."""
     file: str
     content: str
     language: Optional[str] = None
 
 
-class CanvasContent(BaseModel):
+class CanvasContent(CamelModel):
     """Content for the canvas panel."""
     summary: Optional[str] = None
     diagram: Optional[str] = None
 
 
-class Narrative(BaseModel):
+class Narrative(CamelModel):
     """The evolving knowledge narrative."""
     prior: str = ""
     delta: str = ""
     full: str = ""
 
 
-class PathNode(BaseModel):
+class PathNode(CamelModel):
     """A node in the learning path."""
     id: str
     name: str
-    status: Literal["solid", "partial", "frontier"]
+    status: Literal["solid", "partial", "empty"]  # Changed from "frontier" to match frontend
 
 
-class PathData(BaseModel):
+class PathData(CamelModel):
     """Learning path visualization data."""
     nodes: list[PathNode] = []
     neighbors: list[str] = []
@@ -83,7 +96,7 @@ class PathData(BaseModel):
 # Research Mode Data
 # =============================================================================
 
-class Question(BaseModel):
+class Question(CamelModel):
     """A research question."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     question: str
@@ -95,7 +108,7 @@ class Question(BaseModel):
     canvas: Optional[CanvasContent] = None
 
 
-class CategoryQuestion(BaseModel):
+class CategoryQuestion(CamelModel):
     """A category grouping related questions."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     category: str
@@ -103,7 +116,7 @@ class CategoryQuestion(BaseModel):
     question_ids: list[str] = []
 
 
-class KeyInsight(BaseModel):
+class KeyInsight(CamelModel):
     """A key insight from research."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
@@ -111,14 +124,14 @@ class KeyInsight(BaseModel):
     relevance: str = ""
 
 
-class AdjacentQuestion(BaseModel):
+class AdjacentQuestion(CamelModel):
     """An adjacent/frontier question discovered during research."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     question: str
     discovered_from: str
 
 
-class ResearchModeData(BaseModel):
+class ResearchModeData(CamelModel):
     """Complete research mode state."""
     topic: str = ""
     meta: str = ""
@@ -133,7 +146,7 @@ class ResearchModeData(BaseModel):
 # Understand Mode Data
 # =============================================================================
 
-class Assumption(BaseModel):
+class Assumption(CamelModel):
     """An assumption to surface and examine."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     assumption: str
@@ -141,7 +154,7 @@ class Assumption(BaseModel):
     status: Literal["active", "discarded"] = "active"
 
 
-class Concept(BaseModel):
+class Concept(CamelModel):
     """A concept that emerges from understanding."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -151,7 +164,7 @@ class Concept(BaseModel):
     from_assumption_id: Optional[str] = None
 
 
-class Model(BaseModel):
+class Model(CamelModel):
     """A mental model integrating concepts."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -160,7 +173,7 @@ class Model(BaseModel):
     visualization: Optional[str] = None
 
 
-class UnderstandModeData(BaseModel):
+class UnderstandModeData(CamelModel):
     """Complete understand mode state."""
     essay: Narrative = Field(default_factory=Narrative)
     assumptions: list[Assumption] = []
@@ -172,7 +185,7 @@ class UnderstandModeData(BaseModel):
 # Build Mode Data
 # =============================================================================
 
-class GroundingConcept(BaseModel):
+class GroundingConcept(CamelModel):
     """A concept grasped during grounding phase."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -180,7 +193,7 @@ class GroundingConcept(BaseModel):
     sufficient: bool = False
 
 
-class Construct(BaseModel):
+class Construct(CamelModel):
     """A building block construct."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -189,7 +202,7 @@ class Construct(BaseModel):
     code: Optional[str] = None
 
 
-class Decision(BaseModel):
+class Decision(CamelModel):
     """A trade-off decision."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     choice: str
@@ -199,14 +212,14 @@ class Decision(BaseModel):
     produces_id: Optional[str] = None
 
 
-class Capability(BaseModel):
+class Capability(CamelModel):
     """A capability enabled by constructs/decisions."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     capability: str
     enabled_by: list[str] = []
 
 
-class BuildModeData(BaseModel):
+class BuildModeData(CamelModel):
     """Complete build mode state."""
     narrative: Narrative = Field(default_factory=Narrative)
     constructs: list[Construct] = []
@@ -218,7 +231,7 @@ class BuildModeData(BaseModel):
 # Agent State (for persistence)
 # =============================================================================
 
-class AgentState(BaseModel):
+class AgentState(CamelModel):
     """Agent-specific state for persistence across sessions."""
     anchor_map: dict = {}
     slo_progress: list[dict] = []
@@ -231,7 +244,7 @@ class AgentState(BaseModel):
 # Session (Top-Level)
 # =============================================================================
 
-class Session(BaseModel):
+class Session(CamelModel):
     """Complete session state for persistence."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created: datetime = Field(default_factory=datetime.utcnow)
