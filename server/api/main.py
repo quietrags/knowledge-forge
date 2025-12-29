@@ -44,6 +44,8 @@ app.add_middleware(
 app.include_router(journey.router, prefix="/api/journey", tags=["journey"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(session.router, prefix="/api/session", tags=["session"])
+# Alias: /api/sessions (with 's') for frontend compatibility
+app.include_router(session.router, prefix="/api/sessions", tags=["session"], include_in_schema=False)
 
 
 # =============================================================================

@@ -45,9 +45,7 @@ class JourneyAnalyzeRequest(BaseModel):
     learner_context: Optional[str] = None
 
 
-class JourneyAnalyzeResponse(BaseModel):
-    """Response with journey design brief."""
-    brief: JourneyDesignBrief
+# Note: analyze endpoint returns JourneyDesignBrief directly per spec
 
 
 class JourneyConfirmRequest(BaseModel):
@@ -106,7 +104,7 @@ def analyze_question_heuristic(question: str) -> JourneyDesignBrief:
 # Routes
 # =============================================================================
 
-@router.post("/analyze", response_model=JourneyAnalyzeResponse)
+@router.post("/analyze", response_model=JourneyDesignBrief)
 async def analyze_journey(request: JourneyAnalyzeRequest):
     """
     Analyze a user's question and design their learning journey.
@@ -122,7 +120,7 @@ async def analyze_journey(request: JourneyAnalyzeRequest):
     # TODO: Use Orchestrator agent for real analysis
     brief = analyze_question_heuristic(request.question)
 
-    return JourneyAnalyzeResponse(brief=brief)
+    return brief
 
 
 @router.post("/confirm", response_model=SessionInitResponse)

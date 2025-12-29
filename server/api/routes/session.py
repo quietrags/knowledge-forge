@@ -60,8 +60,7 @@ class SessionSaveRequest(BaseModel):
 class SessionSaveResponse(BaseModel):
     """Response confirming save."""
     saved: bool
-    session_id: str
-    updated: str
+    path: str  # File path where session was saved
 
 
 class SessionDeleteResponse(BaseModel):
@@ -128,10 +127,12 @@ async def save_session(session_id: str, request: SessionSaveRequest):
         # Just saving triggers the updated timestamp
         saved = store.save(session)
 
+        # Get the file path from the backend
+        session_path = store.backend.get_session_path(saved.id)
+
         return SessionSaveResponse(
             saved=True,
-            session_id=saved.id,
-            updated=saved.updated.isoformat(),
+            path=str(session_path),
         )
     except SessionNotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
