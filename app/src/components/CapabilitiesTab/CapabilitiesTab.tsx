@@ -1,10 +1,11 @@
-import { useBuildData, useForgeActions } from '../../store/useStore'
+import { useBuildData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './CapabilitiesTab.module.css'
 
 export function CapabilitiesTab() {
   const buildData = useBuildData()
   const { addCapability } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!buildData || buildData.capabilities.length === 0) {
     return (
@@ -18,7 +19,7 @@ export function CapabilitiesTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Building</div>
-        <h1 className={styles.title}>{buildData.narrative.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Capabilities are what you can now do—the practical outcomes of what you've built or learned.
         </p>

@@ -1,10 +1,11 @@
-import { useBuildData, useForgeActions } from '../../store/useStore'
+import { useBuildData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './DecisionsTab.module.css'
 
 export function DecisionsTab() {
   const buildData = useBuildData()
   const { addDecision } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!buildData || buildData.decisions.length === 0) {
     return (
@@ -18,7 +19,7 @@ export function DecisionsTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Building</div>
-        <h1 className={styles.title}>{buildData.narrative.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Decisions document trade-offs—what you chose, what you didn't, and why.
         </p>

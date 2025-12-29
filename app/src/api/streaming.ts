@@ -6,10 +6,12 @@ import { getStreamUrl } from './client'
 import type {
   SSEEventType,
   SessionStartedPayload,
+  SessionResumedPayload,
   AgentThinkingPayload,
   AgentSpeakingPayload,
   AgentCompletePayload,
   QuestionAddedPayload,
+  QuestionUpdatedPayload,
   QuestionAnsweredPayload,
   CategoryAddedPayload,
   CategoryInsightPayload,
@@ -21,10 +23,12 @@ import type {
   GroundingConceptAddedPayload,
   AssumptionSurfacedPayload,
   AssumptionDiscardedPayload,
+  ConceptAddedPayload,
   ConceptDistinguishedPayload,
   ModelIntegratedPayload,
   NarrativeUpdatedPayload,
   PhaseChangedPayload,
+  PathUpdatedPayload,
   ErrorPayload,
 } from './types'
 
@@ -35,6 +39,7 @@ import type {
 export interface StreamHandlers {
   // Session lifecycle
   onSessionStarted?: (payload: SessionStartedPayload) => void
+  onSessionResumed?: (payload: SessionResumedPayload) => void
   onSessionEnded?: () => void
 
   // Agent activity
@@ -44,6 +49,7 @@ export interface StreamHandlers {
 
   // Research mode events
   onQuestionAdded?: (payload: QuestionAddedPayload) => void
+  onQuestionUpdated?: (payload: QuestionUpdatedPayload) => void
   onQuestionAnswered?: (payload: QuestionAnsweredPayload) => void
   onCategoryAdded?: (payload: CategoryAddedPayload) => void
   onCategoryInsight?: (payload: CategoryInsightPayload) => void
@@ -59,12 +65,14 @@ export interface StreamHandlers {
   // Understand mode events
   onAssumptionSurfaced?: (payload: AssumptionSurfacedPayload) => void
   onAssumptionDiscarded?: (payload: AssumptionDiscardedPayload) => void
+  onConceptAdded?: (payload: ConceptAddedPayload) => void
   onConceptDistinguished?: (payload: ConceptDistinguishedPayload) => void
   onModelIntegrated?: (payload: ModelIntegratedPayload) => void
 
   // Shared events
   onNarrativeUpdated?: (payload: NarrativeUpdatedPayload) => void
   onPhaseChanged?: (payload: PhaseChangedPayload) => void
+  onPathUpdated?: (payload: PathUpdatedPayload) => void
   onError?: (payload: ErrorPayload) => void
 
   // Connection events
@@ -79,11 +87,13 @@ export interface StreamHandlers {
 
 const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
   'session.started': 'onSessionStarted',
+  'session.resumed': 'onSessionResumed',
   'session.ended': 'onSessionEnded',
   'agent.thinking': 'onAgentThinking',
   'agent.speaking': 'onAgentSpeaking',
   'agent.complete': 'onAgentComplete',
   'data.question.added': 'onQuestionAdded',
+  'data.question.updated': 'onQuestionUpdated',
   'data.question.answered': 'onQuestionAnswered',
   'data.category.added': 'onCategoryAdded',
   'data.category.insight': 'onCategoryInsight',
@@ -95,10 +105,12 @@ const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
   'data.grounding_concept.added': 'onGroundingConceptAdded',
   'data.assumption.surfaced': 'onAssumptionSurfaced',
   'data.assumption.discarded': 'onAssumptionDiscarded',
+  'data.concept.added': 'onConceptAdded',
   'data.concept.distinguished': 'onConceptDistinguished',
   'data.model.integrated': 'onModelIntegrated',
   'narrative.updated': 'onNarrativeUpdated',
   'phase.changed': 'onPhaseChanged',
+  'path.updated': 'onPathUpdated',
   'error': 'onError',
 }
 
@@ -141,11 +153,13 @@ export function createJourneyStream(
 
     eventSource.addEventListener(eventType, (event: MessageEvent) => {
       try {
-        const payload = JSON.parse(event.data)
+        // Parse the full event: {type, timestamp, payload}
+        const eventData = JSON.parse(event.data)
+        // Extract just the payload for handlers
         const handler = handlers[handlerName as keyof StreamHandlers]
         if (handler) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ;(handler as (p: any) => void)(payload)
+          ;(handler as (p: any) => void)(eventData.payload)
         }
       } catch (error) {
         console.error(`Failed to parse SSE event "${eventType}":`, error)

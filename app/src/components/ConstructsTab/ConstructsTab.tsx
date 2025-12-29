@@ -1,10 +1,11 @@
-import { useBuildData, useForgeActions } from '../../store/useStore'
+import { useBuildData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './ConstructsTab.module.css'
 
 export function ConstructsTab() {
   const buildData = useBuildData()
   const { addConstruct } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!buildData || buildData.constructs.length === 0) {
     return (
@@ -18,7 +19,7 @@ export function ConstructsTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Building</div>
-        <h1 className={styles.title}>{buildData.narrative.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Constructs are objects-to-think-with—the parts you're combining to build something new.
         </p>

@@ -1,10 +1,11 @@
-import { useUnderstandData, useForgeActions } from '../../store/useStore'
+import { useUnderstandData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './ModelTab.module.css'
 
 export function ModelTab() {
   const understandData = useUnderstandData()
   const { addModel } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!understandData || understandData.models.length === 0) {
     return (
@@ -26,7 +27,7 @@ export function ModelTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Understanding</div>
-        <h1 className={styles.title}>{understandData.essay.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Models integrate concepts into coherent frameworks—they're how you see the system as a whole.
         </p>

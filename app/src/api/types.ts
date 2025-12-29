@@ -80,6 +80,7 @@ export interface SessionSaveResponse {
 export type SSEEventType =
   // Session lifecycle
   | 'session.started'
+  | 'session.resumed'
   | 'session.ended'
   // Agent activity
   | 'agent.thinking'
@@ -87,6 +88,7 @@ export type SSEEventType =
   | 'agent.complete'
   // Research mode data events
   | 'data.question.added'
+  | 'data.question.updated'
   | 'data.question.answered'
   | 'data.category.added'
   | 'data.category.insight'
@@ -100,11 +102,13 @@ export type SSEEventType =
   // Understand mode data events
   | 'data.assumption.surfaced'
   | 'data.assumption.discarded'
+  | 'data.concept.added'
   | 'data.concept.distinguished'
   | 'data.model.integrated'
   // Shared events
   | 'narrative.updated'
   | 'phase.changed'
+  | 'path.updated'
   | 'error'
 
 export interface SSEEvent<T = unknown> {
@@ -119,6 +123,11 @@ export interface SSEEvent<T = unknown> {
 
 // Session events
 export interface SessionStartedPayload {
+  sessionId: string
+  mode: Mode
+}
+
+export interface SessionResumedPayload {
   sessionId: string
   mode: Mode
 }
@@ -140,6 +149,12 @@ export interface AgentCompletePayload {
 export interface QuestionAddedPayload {
   question: Question
   categoryId: string
+}
+
+export interface QuestionUpdatedPayload {
+  questionId: string
+  status?: 'open' | 'investigating' | 'answered'
+  answer?: string
 }
 
 export interface QuestionAnsweredPayload {
@@ -213,6 +228,12 @@ export interface AssumptionDiscardedPayload {
   assumptionId: string
 }
 
+export interface ConceptAddedPayload {
+  id: string
+  name: string
+  definition: string
+}
+
 export interface ConceptDistinguishedPayload {
   id: string
   name: string
@@ -238,6 +259,15 @@ export interface NarrativeUpdatedPayload {
 export interface PhaseChangedPayload {
   from: BuildPhase
   to: BuildPhase
+}
+
+export interface PathUpdatedPayload {
+  nodes: Array<{
+    id: string
+    name: string
+    status: 'solid' | 'partial' | 'empty'
+  }>
+  neighbors: string[]
 }
 
 export interface ErrorPayload {
