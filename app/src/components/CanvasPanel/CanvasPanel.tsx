@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DOMPurify from 'dompurify'
 import { useCurrentCanvas } from '../../store/useStore'
 import styles from './CanvasPanel.module.css'
 
@@ -46,7 +47,7 @@ export function CanvasPanel() {
         </div>
         <div className={styles.content}>
           {content ? (
-            <div dangerouslySetInnerHTML={{ __html: content }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />
           ) : (
             <div className={styles.noContent}>No {activeTab} available</div>
           )}

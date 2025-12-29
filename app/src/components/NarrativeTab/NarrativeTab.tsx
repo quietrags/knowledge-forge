@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify'
 import { useBuildData, useUnderstandData, useResearchData, useMode } from '../../store/useStore'
 import type { Narrative } from '../../types'
 import styles from './NarrativeTab.module.css'
@@ -36,7 +37,7 @@ export function NarrativeTab() {
 
       <div
         className={styles.content}
-        dangerouslySetInnerHTML={{ __html: narrative.content }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(narrative.content) }}
       />
     </div>
   )
