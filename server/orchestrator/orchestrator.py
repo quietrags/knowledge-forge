@@ -87,7 +87,7 @@ class Orchestrator:
         self,
         question: str,
         learner_context: Optional[str] = None,
-        use_llm: bool = True,
+        use_llm: bool = False,
     ) -> JourneyDesignBrief:
         """
         Analyze a question and return a journey design brief.
@@ -98,7 +98,7 @@ class Orchestrator:
         Args:
             question: The user's question
             learner_context: Optional context about the learner
-            use_llm: Whether to use LLM for deep analysis
+            use_llm: Whether to use LLM for deep analysis (default False for fast response)
 
         Returns:
             JourneyDesignBrief with routing decision and confirmation

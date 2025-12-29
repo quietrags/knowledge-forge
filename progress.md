@@ -701,6 +701,9 @@ server/tests/
 - Closed: `knowledge-forge-cm0` (Backend Orchestrator)
 - Remaining: `knowledge-forge-7x2`, `knowledge-forge-614`, `knowledge-forge-b7h` (3 mode agents)
 
+### Known Issues (Deferred)
+- **Routing pattern mismatch**: `router.py:40` has pattern `r"\bhow does\b.*\bwork\b"` in `UNDERSTAND_PATTERNS`, but `docs/spec.md:133` says "How does X work?" should route to Research. Intentionally deferred - need to decide if spec or implementation is correct for this edge case.
+
 ### Next Session
 1. Start implementing Research Agent (`knowledge-forge-7x2`)
 2. Implement DECOMPOSE, ANSWER, RISE ABOVE, EXPAND phases

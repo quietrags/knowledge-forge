@@ -8,11 +8,15 @@ Handles question analysis and mode routing using two mechanisms:
 
 from __future__ import annotations
 
+import json
+import logging
 import re
 from typing import Optional
 from anthropic import Anthropic
 
 from server.persistence import JourneyDesignBrief, Mode, AnswerType
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -216,15 +220,15 @@ Watch for misalignment:
             messages=[{"role": "user", "content": user_message}],
         )
 
-        # Parse JSON response
-        import json
+        # Parse JSON response safely
+        if not response.content:
+            raise ValueError("Empty response from LLM")
         response_text = response.content[0].text
 
-        # Handle code blocks in response
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0]
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0]
+        # Extract JSON from code blocks if present (with bounds checking)
+        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', response_text)
+        if json_match:
+            response_text = json_match.group(1)
 
         data = json.loads(response_text.strip())
 
@@ -260,6 +264,11 @@ Watch for misalignment:
 
         try:
             return await self.analyze_with_llm(question, learner_context)
-        except Exception:
-            # Fall back to heuristics if LLM fails
+        except Exception as e:
+            # Log the error and fall back to heuristics
+            logger.warning(
+                "LLM routing failed, falling back to heuristics: %s",
+                str(e),
+                exc_info=True,
+            )
             return self.analyze_quick(question)
