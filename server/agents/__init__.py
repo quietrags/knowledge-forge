@@ -8,6 +8,7 @@ implement the pedagogical approaches for each learning mode.
 from .base import BaseForgeAgent, PhaseTransition, BasePhaseContext
 from .research import ResearchAgent, ResearchPhase, ResearchPhaseContext
 from .understand import UnderstandAgent, UnderstandPhase, UnderstandPhaseContext
+from .build import BuildAgent, BuildPhase, BuildPhaseContext
 
 __all__ = [
     # Base
@@ -22,4 +23,8 @@ __all__ = [
     "UnderstandAgent",
     "UnderstandPhase",
     "UnderstandPhaseContext",
+    # Build
+    "BuildAgent",
+    "BuildPhase",
+    "BuildPhaseContext",
 ]
