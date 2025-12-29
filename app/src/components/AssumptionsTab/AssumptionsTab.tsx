@@ -1,10 +1,11 @@
-import { useUnderstandData, useForgeActions } from '../../store/useStore'
+import { useUnderstandData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './AssumptionsTab.module.css'
 
 export function AssumptionsTab() {
   const understandData = useUnderstandData()
   const { addAssumption } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!understandData || understandData.assumptions.length === 0) {
     return (
@@ -18,7 +19,7 @@ export function AssumptionsTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Understanding</div>
-        <h1 className={styles.title}>{understandData.essay.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Assumptions surfaced—beliefs you held before that deeper understanding has revised or nuanced.
         </p>

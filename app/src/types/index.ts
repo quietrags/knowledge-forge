@@ -118,10 +118,9 @@ export interface ResearchModeData {
 // ============================================================================
 
 export interface Narrative {
-  label: string
-  title: string
-  meta: string
-  content: string // HTML/Markdown content
+  prior: string   // Previous narrative content
+  delta: string   // New content being streamed
+  full: string    // Complete narrative (prior + delta)
 }
 
 export interface Construct {

@@ -1,10 +1,11 @@
-import { useUnderstandData, useForgeActions } from '../../store/useStore'
+import { useUnderstandData, useForgeActions, useJourneyBrief } from '../../store/useStore'
 import { InlineAdd } from '../InlineAdd/InlineAdd'
 import styles from './ConceptsTab.module.css'
 
 export function ConceptsTab() {
   const understandData = useUnderstandData()
   const { addConcept } = useForgeActions()
+  const journeyBrief = useJourneyBrief()
 
   if (!understandData || understandData.concepts.length === 0) {
     return (
@@ -25,7 +26,7 @@ export function ConceptsTab() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.label}>Understanding</div>
-        <h1 className={styles.title}>{understandData.essay.title}</h1>
+        <h1 className={styles.title}>{journeyBrief?.originalQuestion || 'Learning Journey'}</h1>
         <p className={styles.description}>
           Concepts are precise distinctions that emerge from examining assumptions. Threshold concepts transform how you see the domain.
         </p>

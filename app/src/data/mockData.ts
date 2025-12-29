@@ -28,10 +28,9 @@ export const mockResearchData: ResearchModeData = {
   topic: 'AI Coding Agent Economics',
   meta: 'Exploring key questions about billing, costs, and optimization',
   essay: {
-    label: 'Research Synthesis',
-    title: 'AI Coding Agent Economics',
-    meta: 'A synthesis of findings on billing, costs, and optimization strategies',
-    content: `
+    prior: '',
+    delta: '',
+    full: `
       <p>The economics of AI coding agents fundamentally differ from traditional software tools. Where conventional developer tools operate on subscription or seat-based pricing with near-zero marginal cost per use, AI agents introduce <strong>token-based billing</strong> where every interaction incurs real compute costs.</p>
 
       <p>Three key insights have emerged from this research:</p>
@@ -225,10 +224,9 @@ def attention_cost(context_length: int) -> float:
 
 export const mockBuildData: BuildModeData = {
   narrative: {
-    label: 'Building',
-    title: 'Document Intelligence Models',
-    meta: 'Building on: tesseract_ocr, http_endpoints',
-    content: `
+    prior: '',
+    delta: '',
+    full: `
       <div class="callout prior">
         You know HTTP endpoints. You've used Tesseract OCR—and experienced <strong>flat text with no structure</strong>.
       </div>
@@ -291,10 +289,9 @@ export const mockBuildData: BuildModeData = {
 
 export const mockUnderstandData: UnderstandModeData = {
   essay: {
-    label: 'Analyzing',
-    title: 'Agent Architectures',
-    meta: 'Clarifying: failure modes, architecture selection',
-    content: `
+    prior: '',
+    delta: '',
+    full: `
       <div class="callout prior">
         You know ReACT: think, act, observe, repeat. You know Reflexion adds self-critique. What's unclear: when does each fail?
       </div>
