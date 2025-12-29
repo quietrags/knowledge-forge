@@ -62,8 +62,9 @@ class TestJourneyEndpoints:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["brief"]["primary_mode"] == "build"
-        assert data["brief"]["answer_type"] == "skill"
+        # /analyze returns brief directly per spec (camelCase)
+        assert data["primaryMode"] == "build"
+        assert data["answerType"] == "skill"
 
     def test_analyze_understand_question(self, client):
         """Test analyzing an understand-style question."""
@@ -73,8 +74,8 @@ class TestJourneyEndpoints:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["brief"]["primary_mode"] == "understand"
-        assert data["brief"]["answer_type"] == "understanding"
+        assert data["primaryMode"] == "understand"
+        assert data["answerType"] == "understanding"
 
     def test_analyze_research_question(self, client):
         """Test analyzing a research-style question."""
@@ -84,8 +85,8 @@ class TestJourneyEndpoints:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["brief"]["primary_mode"] == "research"
-        assert data["brief"]["answer_type"] == "facts"
+        assert data["primaryMode"] == "research"
+        assert data["answerType"] == "facts"
 
     def test_analyze_empty_question(self, client):
         """Test that empty questions are rejected."""
@@ -97,12 +98,12 @@ class TestJourneyEndpoints:
 
     def test_confirm_journey(self, client):
         """Test confirming a journey."""
-        # First analyze
+        # First analyze - /analyze returns brief directly
         analyze_response = client.post(
             "/api/journey/analyze",
             json={"question": "How do I use LangChain?"},
         )
-        brief = analyze_response.json()["brief"]
+        brief = analyze_response.json()
 
         # Then confirm
         response = client.post(
@@ -116,11 +117,12 @@ class TestJourneyEndpoints:
 
     def test_confirm_with_alternative_mode(self, client):
         """Test confirming with an alternative mode."""
+        # /analyze returns brief directly
         analyze_response = client.post(
             "/api/journey/analyze",
             json={"question": "How do I use LangChain?"},
         )
-        brief = analyze_response.json()["brief"]
+        brief = analyze_response.json()
 
         response = client.post(
             "/api/journey/confirm",

@@ -652,6 +652,56 @@ Merged all 3 Phase 1 branches to main. Resolved one merge conflict in NarrativeT
 - `ba39284` - frontend-api-integration merge with conflict resolution
 
 ### Next Session
-1. Start Phase 2: Backend Orchestrator (`knowledge-forge-cm0`)
-2. Implement question routing + journey design logic
-3. Set up Python virtual environment for server development
+1. ~~Start Phase 2: Backend Orchestrator (`knowledge-forge-cm0`)~~ DONE
+2. ~~Implement question routing + journey design logic~~ DONE
+3. ~~Set up Python virtual environment for server development~~ DONE
+
+---
+
+## Session: 2025-12-29 (Phase 2: Backend Orchestrator)
+
+### Summary
+Implemented the Backend Orchestrator module with question routing, journey design, and Build phase management. All 59 tests passing. The orchestrator is now integrated with the API routes.
+
+### Work Done
+- [x] Set up Python virtual environment with `uv`
+- [x] Fixed test alignment (camelCase response format)
+- [x] Created `server/orchestrator/` module with 4 components:
+  - `router.py`: Question → Mode routing with heuristics + LLM-powered analysis
+  - `journey_designer.py`: Session initialization and mode-specific data setup
+  - `phase_manager.py`: Build phase transitions (Grounding → Making)
+  - `orchestrator.py`: Main orchestration class bringing it all together
+- [x] Wrote 27 new tests for orchestrator module
+- [x] Updated journey routes to use orchestrator instead of inline heuristics
+- [x] All 59 tests passing
+
+### Key Artifacts
+```
+server/orchestrator/
+├── __init__.py              # Module exports
+├── router.py                # Question analysis + routing
+├── journey_designer.py      # Session initialization
+├── phase_manager.py         # Build phase transitions
+└── orchestrator.py          # Main orchestration logic
+
+server/tests/
+└── test_orchestrator.py     # 27 new tests
+```
+
+### Decisions
+- **Heuristic fallback**: Router uses regex-based heuristics by default (fast), with optional LLM-powered analysis via `use_llm=true`
+- **MIN_GROUNDING_CONCEPTS = 2**: Need at least 2 sufficient grounding concepts to transition to Making phase
+- **Lazy Anthropic client**: Client only instantiated when LLM analysis is needed
+
+### Learnings
+- **camelCase in API responses**: Pydantic CamelModel with `alias_generator=to_camel` serializes to camelCase by default. Tests must use `data["primaryMode"]` not `data["primary_mode"]`.
+- **Async generator for SSE**: `process_message` yields SSE events as it processes, enabling real-time streaming.
+
+### Beads Updates
+- Closed: `knowledge-forge-cm0` (Backend Orchestrator)
+- Remaining: `knowledge-forge-7x2`, `knowledge-forge-614`, `knowledge-forge-b7h` (3 mode agents)
+
+### Next Session
+1. Start implementing Research Agent (`knowledge-forge-7x2`)
+2. Implement DECOMPOSE, ANSWER, RISE ABOVE, EXPAND phases
+3. Integrate Claude web search for sourced answers

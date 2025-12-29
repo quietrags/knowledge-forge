@@ -18,10 +18,8 @@ from server.persistence import (
     SessionStore,
     JourneyDesignBrief,
     Mode,
-    ResearchModeData,
-    UnderstandModeData,
-    BuildModeData,
 )
+from server.orchestrator import Orchestrator
 from ..streaming import stream_manager, session_started
 
 
@@ -31,8 +29,11 @@ from ..streaming import stream_manager, session_started
 
 router = APIRouter()
 
-# Session store instance
+# Session store instance (shared across routes)
 store = SessionStore()
+
+# Orchestrator instance
+orchestrator = Orchestrator(store=store, stream_manager=stream_manager)
 
 
 # =============================================================================
@@ -43,6 +44,7 @@ class JourneyAnalyzeRequest(BaseModel):
     """Request to analyze a question."""
     question: str
     learner_context: Optional[str] = None
+    use_llm: bool = False  # Default to heuristics for fast response
 
 
 # Note: analyze endpoint returns JourneyDesignBrief directly per spec
@@ -63,44 +65,6 @@ class SessionInitResponse(BaseModel):
 
 
 # =============================================================================
-# Question Analysis (Mock Implementation)
-# =============================================================================
-
-def analyze_question_heuristic(question: str) -> JourneyDesignBrief:
-    """
-    Analyze a question using heuristics.
-
-    TODO: Replace with LLM-powered analysis via Orchestrator agent.
-    """
-    question_lower = question.lower()
-
-    # Heuristic routing based on question patterns
-    if any(phrase in question_lower for phrase in ["how do i", "how can i", "help me", "create", "build", "make"]):
-        mode: Mode = "build"
-        answer_type = "skill"
-        ideal_answer = "Step-by-step guidance to build this capability with concrete techniques you can apply."
-        confirmation = f"It sounds like you want to learn how to do something practical. I'll help you build this skill step by step."
-    elif any(phrase in question_lower for phrase in ["why", "what's the difference", "how does", "explain", "understand"]):
-        mode = "understand"
-        answer_type = "understanding"
-        ideal_answer = "A clear mental model with key distinctions and examples that transform how you think about this."
-        confirmation = f"It sounds like you want to deeply understand this concept. I'll help you build a clear mental model."
-    else:
-        mode = "research"
-        answer_type = "facts"
-        ideal_answer = "Well-sourced answers to your questions with key insights synthesized from reliable sources."
-        confirmation = f"It sounds like you want to research this topic. I'll help you find and synthesize reliable information."
-
-    return JourneyDesignBrief(
-        original_question=question,
-        ideal_answer=ideal_answer,
-        answer_type=answer_type,
-        primary_mode=mode,
-        confirmation_message=confirmation,
-    )
-
-
-# =============================================================================
 # Routes
 # =============================================================================
 
@@ -110,15 +74,22 @@ async def analyze_journey(request: JourneyAnalyzeRequest):
     Analyze a user's question and design their learning journey.
 
     This endpoint:
-    1. Parses the question shape (heuristic routing)
+    1. Parses the question shape (heuristic routing or LLM-powered)
     2. Works backwards from the ideal answer
     3. Returns a JourneyDesignBrief for confirmation
+
+    Set `use_llm=true` in the request to use LLM-powered analysis
+    for more nuanced routing and misalignment detection.
     """
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    # TODO: Use Orchestrator agent for real analysis
-    brief = analyze_question_heuristic(request.question)
+    # Use orchestrator for analysis
+    brief = await orchestrator.analyze_question(
+        question=request.question,
+        learner_context=request.learner_context,
+        use_llm=request.use_llm,
+    )
 
     return brief
 
@@ -130,20 +101,18 @@ async def confirm_journey(request: JourneyConfirmRequest):
 
     This endpoint:
     1. Creates a new session with the journey brief
-    2. Initializes mode-specific data
-    3. Returns the session ID for streaming
+    2. Initializes mode-specific data structures
+    3. Sets up SSE stream for the session
+    4. Returns the session ID for streaming
     """
     if not request.confirmed:
         raise HTTPException(status_code=400, detail="Journey not confirmed")
 
-    # Use alternative mode if provided
-    mode = request.alternative_mode or request.brief.primary_mode
-
-    # Create session
-    session = store.create(journey_brief=request.brief, mode=mode)
-
-    # Initialize stream for this session
-    stream_manager.create_stream(session.id)
+    # Use orchestrator to initialize journey
+    session = await orchestrator.initialize_journey(
+        brief=request.brief,
+        alternative_mode=request.alternative_mode,
+    )
 
     return SessionInitResponse(
         session_id=session.id,
@@ -160,15 +129,13 @@ async def stream_journey(session_id: str = Query(..., description="Session ID"))
     agent processes your journey.
     """
     # Verify session exists
-    if not store.exists(session_id):
+    session = orchestrator.get_session(session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Ensure stream exists
-    if not stream_manager.has_stream(session_id):
-        stream_manager.create_stream(session_id)
-
-    # Get session for initial event
-    session = store.get(session_id)
+    if not orchestrator.has_stream(session_id):
+        orchestrator.create_stream(session_id)
 
     async def event_generator():
         # Send initial session started event
