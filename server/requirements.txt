@@ -1,0 +1,16 @@
+# Knowledge Forge Server Dependencies
+
+# Core
+pydantic>=2.0.0
+
+# API (for later modules)
+fastapi>=0.115.0
+uvicorn>=0.32.0
+sse-starlette>=2.0.0
+
+# Agent SDK (for later modules)
+anthropic>=0.40.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
