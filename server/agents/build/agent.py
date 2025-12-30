@@ -27,6 +27,7 @@ from server.persistence import (
     JourneyDesignBrief,
     Session,
     BuildModeData,
+    Narrative,
 )
 from server.api.streaming import SSEEvent, agent_thinking, agent_speaking
 from server.agents.base import (
@@ -689,6 +690,48 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
             else:
                 return {"content": [{"type": "text", "text": f"Unknown phase: {phase}"}]}
 
+        # =================================================================
+        # Narrative Tools
+        # =================================================================
+
+        @tool(
+            "update_narrative",
+            "Update the build narrative with new content. Call this after each construction round to persist what was learned to the narrative panel. The delta is the new content to add, and full is the complete updated narrative.",
+            {"delta": str, "full": str}
+        )
+        async def update_narrative(args: dict[str, Any]) -> dict[str, Any]:
+            """Update the narrative with construction progress."""
+            delta = args.get("delta", "")
+            full = args.get("full", "")
+
+            # Get or create build data
+            if not agent.session.build_data:
+                agent.session.build_data = BuildModeData()
+
+            # Update the narrative
+            prior = agent.session.build_data.narrative.full if agent.session.build_data.narrative else ""
+            agent.session.build_data.narrative = Narrative(
+                prior=prior,
+                delta=delta,
+                full=full,
+            )
+
+            # Emit narrative.updated event
+            agent.emitter.emit_sync(SSEEvent(
+                type="narrative.updated",
+                payload={
+                    "mode": "build",
+                    "narrative": {
+                        "prior": prior,
+                        "delta": delta,
+                        "full": full,
+                    },
+                    "delta": delta,
+                },
+            ))
+
+            return {"content": [{"type": "text", "text": f"Narrative updated with {len(delta)} characters of new content."}]}
+
         # Create MCP server with all tools
         return create_sdk_mcp_server(
             name="build-agent",
@@ -725,6 +768,8 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                 emit_session_complete,
                 # Utility
                 get_phase_context,
+                # Narrative
+                update_narrative,
             ]
         )
 
@@ -848,14 +893,17 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                 "mcp__build__emit_surrender_strategy",
                 "mcp__build__flag_anchor_gap",
                 "mcp__build__mark_construction_verified",
+                "mcp__build__update_narrative",  # For persisting construction progress
             ],
             BuildPhase.SLO_COMPLETE: [
                 "mcp__build__emit_slo_summary",
                 "mcp__build__advance_to_next_slo",
+                "mcp__build__update_narrative",  # For SLO completion summaries
             ],
             BuildPhase.CONSOLIDATION: [
                 "mcp__build__emit_session_insights",
                 "mcp__build__mark_consolidation_complete",
+                "mcp__build__update_narrative",  # For session consolidation
             ],
             BuildPhase.COMPLETE: [
                 "mcp__build__emit_session_complete",

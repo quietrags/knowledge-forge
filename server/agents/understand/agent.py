@@ -39,6 +39,7 @@ from server.persistence import (
     UnderstandModeData,
     SLO,
     KnowledgeStateFacet,
+    Narrative,
 )
 from server.api.streaming import SSEEvent, agent_thinking, agent_speaking
 from server.agents.base import (
@@ -658,6 +659,48 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             else:
                 return {"content": [{"type": "text", "text": f"Unknown phase: {phase}"}]}
 
+        # =================================================================
+        # Essay/Narrative Tools
+        # =================================================================
+
+        @tool(
+            "update_essay",
+            "Update the understanding essay with new content. Call this after each teaching moment to persist key insights and explanations to the essay panel. The delta is the new content to add, and full is the complete updated essay.",
+            {"delta": str, "full": str}
+        )
+        async def update_essay(args: dict[str, Any]) -> dict[str, Any]:
+            """Update the essay/narrative with teaching content."""
+            delta = args.get("delta", "")
+            full = args.get("full", "")
+
+            # Get or create understand data
+            if not agent.session.understand_data:
+                agent.session.understand_data = UnderstandModeData()
+
+            # Update the essay
+            prior = agent.session.understand_data.essay.full if agent.session.understand_data.essay else ""
+            agent.session.understand_data.essay = Narrative(
+                prior=prior,
+                delta=delta,
+                full=full,
+            )
+
+            # Emit narrative.updated event
+            agent.emitter.emit_sync(SSEEvent(
+                type="narrative.updated",
+                payload={
+                    "mode": "understand",
+                    "narrative": {
+                        "prior": prior,
+                        "delta": delta,
+                        "full": full,
+                    },
+                    "delta": delta,
+                },
+            ))
+
+            return {"content": [{"type": "text", "text": f"Essay updated with {len(delta)} characters of new content."}]}
+
         # Create MCP server with all tools
         return create_sdk_mcp_server(
             name="understand-agent",
@@ -691,6 +734,8 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 emit_session_complete,
                 # Utility
                 get_phase_context,
+                # Essay/Narrative
+                update_essay,
             ]
         )
 
@@ -871,11 +916,13 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 "mcp__understand__update_facet_status",
                 "mcp__understand__record_diagnostic_result",
                 "mcp__understand__mark_mastery_achieved",
+                "mcp__understand__update_essay",  # For persisting teaching moments
             ],
             UnderstandPhase.SLO_COMPLETE: [
                 "mcp__understand__emit_slo_summary",
                 "mcp__understand__advance_to_next_slo",
                 "mcp__understand__skip_current_slo",
+                "mcp__understand__update_essay",  # For SLO completion summaries
             ],
             UnderstandPhase.COMPLETE: [
                 "mcp__understand__emit_session_complete",
