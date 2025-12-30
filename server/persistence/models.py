@@ -148,7 +148,7 @@ class ResearchModeData(CamelModel):
 
 # SLO Frame types
 SLOFrame = Literal["EXPLAIN", "DECIDE", "BUILD", "DEBUG", "COMPARE"]
-FacetStatus = Literal["not_tested", "missing", "shaky", "solid"]
+FacetStatus = Literal["not_tested", "missing", "shaky", "partial", "solid"]
 
 
 class SLO(CamelModel):
