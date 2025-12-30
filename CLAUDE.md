@@ -210,6 +210,30 @@ JourneyDesignBrief(
 )
 ```
 
+### SSE Connections Block Uvicorn Shutdown (SOLVED)
+
+**Problem**: Ctrl-C hangs when SSE connections are active. Uvicorn waits indefinitely for connections to close.
+
+**Root Cause** (deadlock):
+1. Ctrl-C triggers uvicorn graceful shutdown
+2. Uvicorn waits for SSE connections to close
+3. SSE generators block on `queue.get()` waiting for events
+4. Lifespan shutdown (which could signal queues) only runs AFTER connections close
+5. Deadlock: connections wait for signal, lifespan waits for connections
+
+**Solution** (in `server/api/main.py`):
+- Register signal handlers via `loop.add_signal_handler()` during lifespan startup
+- These handlers run IMMEDIATELY when SIGINT arrives (before uvicorn's wait)
+- Handler calls `stream_manager.close_all_streams()` to unblock generators
+- Handler removes itself and re-sends SIGINT for uvicorn to handle normally
+
+**What doesn't work**:
+- Lifespan shutdown handler: runs too late (after connections close)
+- `asyncio.wait_for` timeout: uvicorn still waits for generator completion
+- `--timeout-graceful-shutdown`: doesn't help if connections don't close
+
+See detailed documentation in `server/api/main.py` lifespan function docstring.
+
 ## Related Resources
 
 ### Skill Specs (Reference)

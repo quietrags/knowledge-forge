@@ -123,7 +123,7 @@ async def confirm_journey(request: JourneyConfirmRequest):
 
 
 @router.get("/stream")
-async def stream_journey(session_id: str = Query(..., description="Session ID")):
+async def stream_journey(session_id: str = Query(..., alias="sessionId", description="Session ID")):
     """
     SSE stream for session events.
 

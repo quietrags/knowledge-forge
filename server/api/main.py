@@ -4,10 +4,72 @@ FastAPI application for Knowledge Forge backend.
 
 from __future__ import annotations
 
+import asyncio
+import os
+import signal
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routes import journey, chat, session
+from .streaming import stream_manager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handle startup and shutdown events.
+
+    SSE Graceful Shutdown Solution
+    ==============================
+    Problem: SSE connections block uvicorn shutdown, causing Ctrl-C to hang.
+
+    Root cause (deadlock):
+    1. Ctrl-C triggers uvicorn graceful shutdown
+    2. Uvicorn waits for SSE connections to close
+    3. SSE generators block on queue.get() waiting for events
+    4. Lifespan shutdown (which could signal queues) only runs AFTER connections close
+    5. Deadlock: connections wait for signal, lifespan waits for connections
+
+    Solution:
+    - Register signal handlers via loop.add_signal_handler() during startup
+    - These handlers run IMMEDIATELY when SIGINT arrives (before uvicorn's wait)
+    - Handler closes all SSE streams (puts None in queues to unblock generators)
+    - Handler removes itself and re-sends SIGINT for uvicorn to handle normally
+    - Uvicorn's graceful shutdown now finds connections already closing
+
+    Why other approaches failed:
+    - Lifespan shutdown: runs too late (after connections close)
+    - asyncio.wait_for timeout: uvicorn still waits for generator completion
+    - --timeout-graceful-shutdown: doesn't help if connections don't close
+    """
+    loop = asyncio.get_running_loop()
+    shutdown_triggered = False
+
+    def handle_shutdown_signal():
+        """Close all SSE streams immediately on SIGINT/SIGTERM."""
+        nonlocal shutdown_triggered
+        if shutdown_triggered:
+            return  # Prevent re-entry
+        shutdown_triggered = True
+
+        print("\n[shutdown] Closing all SSE streams...")
+        stream_manager.close_all_streams()
+
+        # Remove our handlers so uvicorn can handle the next signal
+        loop.remove_signal_handler(signal.SIGINT)
+        loop.remove_signal_handler(signal.SIGTERM)
+
+        # Re-send SIGINT so uvicorn proceeds with graceful shutdown
+        os.kill(os.getpid(), signal.SIGINT)
+
+    # Register signal handlers that run in the event loop
+    loop.add_signal_handler(signal.SIGINT, handle_shutdown_signal)
+    loop.add_signal_handler(signal.SIGTERM, handle_shutdown_signal)
+
+    yield
+
+    # Shutdown complete (handlers already removed in signal handler)
 
 # =============================================================================
 # Create FastAPI App
@@ -17,6 +79,7 @@ app = FastAPI(
     title="Knowledge Forge API",
     description="Backend API for Knowledge Forge learning platform",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # =============================================================================

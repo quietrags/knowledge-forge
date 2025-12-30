@@ -188,6 +188,12 @@ class SSEStreamManager:
             self._queues[session_id].put_nowait(None)
             del self._queues[session_id]
 
+    def close_all_streams(self) -> None:
+        """Close all active streams (for graceful shutdown)."""
+        for session_id in list(self._queues.keys()):
+            self._queues[session_id].put_nowait(None)
+        self._queues.clear()
+
     async def emit(self, session_id: str, event: SSEEvent) -> None:
         """Emit an event to a session's stream."""
         if session_id in self._queues:
@@ -211,11 +217,19 @@ class SSEStreamManager:
 
         try:
             while True:
-                event = await queue.get()
-                if event is None:
-                    # Stream closed
-                    break
-                yield event.format()
+                try:
+                    # Use timeout so we can respond to shutdown signals
+                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    if event is None:
+                        # Stream closed
+                        break
+                    yield event.format()
+                except asyncio.TimeoutError:
+                    # Send keepalive comment to maintain connection
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            # Graceful shutdown on Ctrl-C
+            pass
         finally:
             # Clean up if we're the last subscriber
             pass
