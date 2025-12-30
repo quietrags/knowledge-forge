@@ -842,3 +842,53 @@ server/tests/
 1. Test end-to-end flow: start server, send question, verify SSE events
 2. Add checkpoint support (blocking approvals during agent execution)
 3. Consider UI updates to show agent phase status
+
+---
+
+## Session: 2025-12-30 (Code Review + 3 PRs Merged)
+
+### Summary
+Ran comprehensive code review with 5 parallel agents. Found critical SSE event type mismatch between frontend handlers and agent emissions. Created and merged 3 PRs to fix all issues.
+
+### Work Done
+- [x] **Code Review**: 5 parallel agents reviewed ~3,200 lines:
+  - Agent 1: CLAUDE.md compliance
+  - Agent 2: Shallow bug scan
+  - Agent 3: Spec alignment
+  - Agent 4: Frontend-backend alignment (found critical issue)
+  - Agent 5: TODO and comment review
+- [x] **PR #1 (Critical)**: SSE event type alignment
+  - Added 26+ new event types for Build and Understand agents
+  - Build events: `data.anchor.added`, `data.construction_slo.added`, `data.scaffold_level`, etc.
+  - Understand events: `data.knowledge_confidence`, `data.slo.added`, `data.facet_updated`, etc.
+  - 276 lines added to `types.ts` and `streaming.ts`
+- [x] **PR #2 (Medium)**: Removed stale orchestrator placeholder
+  - `orchestrator.process_message()` was returning "Agent integration coming in Phase 3"
+  - Now properly uses agent factory for real agent routing
+- [x] **PR #3 (Low)**: Checkpoint event infrastructure
+  - Added `phase.checkpoint` SSE event type
+  - Added `PhaseCheckpointPayload` interface
+  - Frontend ready for when backend implements checkpoint handlers
+
+### Decisions
+- **Frontend-first for SSE alignment**: Updated frontend types/handlers to match what agents emit, rather than changing agent output
+- **Keep orchestrator.process_message**: Refactored to use agent factory instead of deleting (may be useful for non-chat flows)
+
+### Learnings
+- **SSE contract is critical**: Agents can emit events all day, but if frontend doesn't have handlers, they're silently ignored
+- **Parallel code review works**: 5 agents reviewing different aspects in parallel found issues that single-pass review would miss
+
+### Precious Context
+- **Build agent event names**: Uses `data.anchor.added`, `data.primary_anchor_set`, `data.construction_round` — not generic `data.construct.added`
+- **Understand agent event names**: Uses `data.slo.added`, `data.facet_updated`, `data.diagnostic_result` — not generic `data.concept.added`
+- **Checkpoint pattern**: `phase.checkpoint` event with `{id, message, options, requiresApproval}` enables blocking approval flows
+
+### Commits (All merged to main)
+- `bfa1d06` - Merge PR #1: SSE event type alignment
+- `5e1349c` - Merge PR #2: Stale orchestrator removal
+- `0f1a677` - Merge PR #3: Checkpoint event infrastructure
+
+### Next Session
+1. Test end-to-end flow: start server, send question, verify SSE events render in UI
+2. Implement backend checkpoint handler (blocking approvals during agent execution)
+3. Consider adding React components to display new event types (anchors, SLOs, facets)
