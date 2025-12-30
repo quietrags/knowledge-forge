@@ -108,6 +108,7 @@ export type SSEEventType =
   // Shared events
   | 'narrative.updated'
   | 'phase.changed'
+  | 'phase.checkpoint'
   | 'path.updated'
   | 'error'
 
@@ -259,6 +260,13 @@ export interface NarrativeUpdatedPayload {
 export interface PhaseChangedPayload {
   from: BuildPhase
   to: BuildPhase
+}
+
+export interface PhaseCheckpointPayload {
+  id: string
+  message: string
+  options: string[]
+  requiresApproval: boolean
 }
 
 export interface PathUpdatedPayload {
