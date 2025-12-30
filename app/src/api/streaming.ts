@@ -28,6 +28,7 @@ import type {
   ModelIntegratedPayload,
   NarrativeUpdatedPayload,
   PhaseChangedPayload,
+  PhaseCheckpointPayload,
   PathUpdatedPayload,
   ErrorPayload,
   // Build agent events (new)
@@ -130,6 +131,7 @@ export interface StreamHandlers {
   // Shared events
   onNarrativeUpdated?: (payload: NarrativeUpdatedPayload) => void
   onPhaseChanged?: (payload: PhaseChangedPayload) => void
+  onPhaseCheckpoint?: (payload: PhaseCheckpointPayload) => void
   onPathUpdated?: (payload: PathUpdatedPayload) => void
   onError?: (payload: ErrorPayload) => void
 
@@ -202,6 +204,7 @@ const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
   // Shared
   'narrative.updated': 'onNarrativeUpdated',
   'phase.changed': 'onPhaseChanged',
+  'phase.checkpoint': 'onPhaseCheckpoint',
   'path.updated': 'onPathUpdated',
   'error': 'onError',
 }
