@@ -217,6 +217,10 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
         )
         async def mark_question_tree_approved(args: dict[str, Any]) -> dict[str, Any]:
             """Mark question tree as approved - ready to proceed to ANSWER phase."""
+            # Guard: Don't allow approval before user has responded
+            if agent.phase_context.awaiting_user_input:
+                return {"content": [{"type": "text", "text": "ERROR: Cannot approve question tree while waiting for user input. Wait for the user to respond first."}]}
+
             agent.phase_context.question_tree_approved = True
 
             return {"content": [{"type": "text", "text": f"Question tree approved. Ready to proceed to answering questions."}]}

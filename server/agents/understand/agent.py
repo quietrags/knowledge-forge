@@ -188,11 +188,15 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         @tool(
             "emit_session_config",
-            "Record the learner's session preferences",
+            "Record the learner's session preferences. Only call this AFTER the learner has responded with their preferences.",
             {"pace": str, "style": str, "learner_context": str}
         )
         async def emit_session_config(args: dict[str, Any]) -> dict[str, Any]:
             """Record session configuration."""
+            # Guard: Don't allow setting config before user has responded
+            if agent.phase_context.awaiting_user_input:
+                return {"content": [{"type": "text", "text": "ERROR: Cannot set session config while waiting for user input. Wait for the learner to respond first."}]}
+
             agent.phase_context.pace = args.get("pace", "standard")
             agent.phase_context.style = args.get("style", "balanced")
             agent.phase_context.learner_context = args.get("learner_context", "")
@@ -318,11 +322,15 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         @tool(
             "mark_slos_selected",
-            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs.",
+            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs. Only call this AFTER the learner has responded.",
             {"selected_slo_ids": str}  # "all" or comma-separated IDs
         )
         async def mark_slos_selected(args: dict[str, Any]) -> dict[str, Any]:
             """Record selected SLOs."""
+            # Guard: Don't allow selection before user has responded
+            if agent.phase_context.awaiting_user_input:
+                return {"content": [{"type": "text", "text": "ERROR: Cannot select SLOs while waiting for user input. Wait for the learner to respond first."}]}
+
             # Parse the input - handle "all" or comma-separated IDs
             raw = args.get("selected_slo_ids", "all")
             if isinstance(raw, list):

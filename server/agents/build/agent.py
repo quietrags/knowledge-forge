@@ -226,11 +226,15 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "mark_anchors_confirmed",
-            "Mark that anchors have been confirmed by learner",
+            "Mark that anchors have been confirmed by learner. Only call this AFTER the learner has responded.",
             {"summary": str}
         )
         async def mark_anchors_confirmed(args: dict[str, Any]) -> dict[str, Any]:
             """Confirm anchors."""
+            # Guard: Don't allow confirmation before user has responded
+            if agent.phase_context.awaiting_user_input:
+                return {"content": [{"type": "text", "text": "ERROR: Cannot confirm anchors while waiting for user input. Wait for the learner to respond first."}]}
+
             agent.phase_context.anchors_confirmed = True
 
             agent.emitter.emit_sync(SSEEvent(
@@ -322,11 +326,15 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "mark_slos_selected",
-            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs.",
+            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs. Only call this AFTER the learner has responded.",
             {"selected_slo_ids": str}  # "all" or comma-separated IDs
         )
         async def mark_slos_selected(args: dict[str, Any]) -> dict[str, Any]:
             """Record selected SLOs."""
+            # Guard: Don't allow selection before user has responded
+            if agent.phase_context.awaiting_user_input:
+                return {"content": [{"type": "text", "text": "ERROR: Cannot select SLOs while waiting for user input. Wait for the learner to respond first."}]}
+
             raw = args.get("selected_slo_ids", "all")
             if isinstance(raw, list):
                 selected_ids = raw
