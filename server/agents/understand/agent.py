@@ -56,7 +56,9 @@ from .prompts import (
     SYSTEM_PROMPT,
     SELF_ASSESS_PROMPT,
     CONFIGURE_PROMPT,
+    CONFIGURE_RESUME_PROMPT,
     CLASSIFY_INITIAL_PROMPT,
+    CLASSIFY_RESUME_PROMPT,
     CALIBRATE_INITIAL_PROMPT,
     CALIBRATE_RESUME_PROMPT,
     CALIBRATE_REENTRY_PROMPT,
@@ -207,6 +209,17 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
             return {"content": [{"type": "text", "text": f"Session configured: pace={args['pace']}, style={args['style']}"}]}
 
+        @tool(
+            "mark_config_questions_asked",
+            "Mark that configuration questions have been presented to the learner. Call this AFTER presenting pace/style/context options, then STOP and WAIT for the learner's response.",
+            {}
+        )
+        async def mark_config_questions_asked(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that config questions were asked - agent should now wait for response."""
+            agent.phase_context.config_questions_asked = True
+
+            return {"content": [{"type": "text", "text": "Configuration questions presented. STOP and wait for the learner's response before proceeding."}]}
+
         # =================================================================
         # Stage 1: Topic Classification and SLO Tools
         # =================================================================
@@ -286,6 +299,18 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             ))
 
             return {"content": [{"type": "text", "text": f"SLO added: {args['statement'][:50]}..."}]}
+
+        @tool(
+            "mark_slos_presented",
+            "Mark that SLOs have been presented to the learner for selection. Call this AFTER presenting all SLOs, then STOP and WAIT for the learner to select which ones they want.",
+            {}
+        )
+        async def mark_slos_presented(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that SLOs were presented - agent should now wait for selection."""
+            agent.phase_context.slos_presented = True
+
+            slo_count = len(agent.phase_context.slos)
+            return {"content": [{"type": "text", "text": f"{slo_count} SLOs presented. STOP and wait for the learner to select which ones they want before proceeding."}]}
 
         @tool(
             "mark_slos_selected",
@@ -606,9 +631,12 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 emit_knowledge_confidence,
                 # Stage 0.5
                 emit_session_config,
+                # Stage 0.5 (additional)
+                mark_config_questions_asked,
                 # Stage 1
                 emit_topic_type,
                 emit_slo,
+                mark_slos_presented,
                 mark_slos_selected,
                 # Stage 2
                 update_facet_status,
@@ -778,10 +806,12 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             ],
             UnderstandPhase.CONFIGURE: [
                 "mcp__understand__emit_session_config",
+                "mcp__understand__mark_config_questions_asked",
             ],
             UnderstandPhase.CLASSIFY: [
                 "mcp__understand__emit_topic_type",
                 "mcp__understand__emit_slo",
+                "mcp__understand__mark_slos_presented",
                 "mcp__understand__mark_slos_selected",
             ],
             UnderstandPhase.CALIBRATE: [
@@ -820,13 +850,32 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             )
 
         elif phase == UnderstandPhase.CONFIGURE:
-            return CONFIGURE_PROMPT
+            # Check if we're resuming mid-configuration (questions asked, waiting for response)
+            if self.phase_context.config_questions_asked and not self.phase_context.session_configured:
+                # User has responded to config questions - use resume prompt
+                return CONFIGURE_RESUME_PROMPT
+            else:
+                # First time - present config options
+                return CONFIGURE_PROMPT
 
         elif phase == UnderstandPhase.CLASSIFY:
-            return CLASSIFY_INITIAL_PROMPT.format(
-                topic=self.journey_brief.original_question,
-                learner_context=self.phase_context.learner_context or "(none provided)",
-            )
+            # Check if we're resuming mid-classification (SLOs presented, waiting for selection)
+            if self.phase_context.slos_presented and not self.phase_context.slos_confirmed:
+                # User has responded to SLO presentation - use resume prompt
+                slo_list = "\n".join([
+                    f"- {s.statement} (frame: {s.frame})"
+                    for s in self.phase_context.slos
+                ])
+                return CLASSIFY_RESUME_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                    slo_list=slo_list if slo_list else "(no SLOs generated yet)",
+                )
+            else:
+                # First time - generate and present SLOs
+                return CLASSIFY_INITIAL_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                    learner_context=self.phase_context.learner_context or "(none provided)",
+                )
 
         elif phase == UnderstandPhase.CALIBRATE:
             slo = self.phase_context.get_current_slo()
@@ -901,6 +950,28 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             )
 
         return ""
+
+    def _get_awaiting_input_prompt(self) -> str:
+        """Get a phase-specific prompt for when awaiting user input."""
+        phase = self.current_phase
+
+        if phase == UnderstandPhase.CONFIGURE:
+            return "Please share your learning preferences (pace, style, and any relevant context)."
+
+        elif phase == UnderstandPhase.CLASSIFY:
+            slo_count = len(self.phase_context.slos)
+            return f"I've generated {slo_count} learning objectives. Which would you like to explore? (Type 'all' for all, or specify which ones)"
+
+        elif phase == UnderstandPhase.CALIBRATE:
+            remaining = self.phase_context.get_remaining_probes()
+            if remaining:
+                return f"Please respond to the probe question above. ({len(remaining)} probes remaining)"
+            return "Please respond to my question above."
+
+        elif phase == UnderstandPhase.DIAGNOSE:
+            return "Please respond to the diagnostic question above."
+
+        return "I'm waiting for your response to continue."
 
     # =========================================================================
     # Transition Evaluation

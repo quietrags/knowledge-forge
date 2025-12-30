@@ -49,6 +49,7 @@ from .phases import (
 from .prompts import (
     SYSTEM_PROMPT,
     DECOMPOSE_INITIAL_PROMPT,
+    DECOMPOSE_RESUME_PROMPT,
     DECOMPOSE_REENTRY_PROMPT,
     ANSWER_INITIAL_PROMPT,
     ANSWER_REENTRY_PROMPT,
@@ -197,6 +198,28 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             return {"content": [{"type": "text", "text": f"Question added with ID {question.id}"}]}
 
         @tool(
+            "mark_question_tree_presented",
+            "Mark that the question tree has been presented to the user for approval. Call this AFTER presenting all categories and questions, then STOP and WAIT for user approval.",
+            {}
+        )
+        async def mark_question_tree_presented(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that question tree was presented - agent should now wait for approval."""
+            agent.phase_context.question_tree_presented = True
+
+            return {"content": [{"type": "text", "text": f"Question tree presented ({len(agent.phase_context.categories)} categories, {len(agent.phase_context.questions)} questions). STOP and wait for user approval before proceeding."}]}
+
+        @tool(
+            "mark_question_tree_approved",
+            "Mark that the question tree has been approved by the user. Only call this AFTER the user has explicitly approved the tree.",
+            {"user_feedback": str}
+        )
+        async def mark_question_tree_approved(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark question tree as approved - ready to proceed to ANSWER phase."""
+            agent.phase_context.question_tree_approved = True
+
+            return {"content": [{"type": "text", "text": f"Question tree approved. Ready to proceed to answering questions."}]}
+
+        @tool(
             "mark_decompose_complete",
             "Mark question decomposition as complete",
             {"summary": str}
@@ -207,11 +230,11 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
 
         @tool(
             "emit_answer",
-            "Record an answer to a research question",
+            "Record an answer to a research question. sources should be a JSON array of source objects, e.g. [{\"title\": \"...\", \"url\": \"...\"}]",
             {
                 "question_id": str,
                 "answer": str,
-                "sources": list,  # List of source dicts
+                "sources": str,  # JSON array of source dicts
                 "confidence": str,
             }
         )
@@ -219,12 +242,24 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             """Record an answer with sources."""
             question_id = args["question_id"]
 
+            # Parse sources from JSON string
+            sources_raw = args.get("sources", "[]")
+            sources_list = []
+            if isinstance(sources_raw, list):
+                sources_list = sources_raw
+            elif isinstance(sources_raw, str):
+                import json
+                try:
+                    sources_list = json.loads(sources_raw) if sources_raw.strip() else []
+                except:
+                    sources_list = []
+
             # Find and update the question
             for q in agent.phase_context.questions:
                 if q.id == question_id:
                     q.status = "answered"
                     q.answer = args["answer"]
-                    q.sources = [Source(**s) for s in args.get("sources", [])]
+                    q.sources = [Source(**s) for s in sources_list]
                     break
 
             agent.phase_context.mark_question_answered(question_id)
@@ -235,7 +270,7 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
                 payload={
                     "questionId": question_id,
                     "answer": args["answer"],
-                    "sources": args.get("sources", []),
+                    "sources": sources_list,
                     "confidence": args.get("confidence", "medium"),
                 },
             ))
@@ -333,15 +368,23 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
 
         @tool(
             "flag_unanswered_needed",
-            "Flag that specific questions must be answered before synthesis",
-            {"question_ids": list, "reason": str}
+            "Flag that specific questions must be answered before synthesis. question_ids should be comma-separated.",
+            {"question_ids": str, "reason": str}
         )
         async def flag_unanswered_needed(args: dict[str, Any]) -> dict[str, Any]:
             """Trigger backward transition to ANSWER."""
-            agent.phase_context.unanswered_for_synthesis = args["question_ids"]
+            raw_ids = args.get("question_ids", "")
+            if isinstance(raw_ids, list):
+                question_ids = raw_ids
+            else:
+                # Parse comma-separated or newline-separated IDs
+                import re
+                question_ids = [qid.strip() for qid in re.split(r'[,\n]', raw_ids) if qid.strip()]
+
+            agent.phase_context.unanswered_for_synthesis = question_ids
             agent.phase_context.backward_trigger_detail = args["reason"]
 
-            return {"content": [{"type": "text", "text": f"Flagged {len(args['question_ids'])} questions needed - will trigger backward transition"}]}
+            return {"content": [{"type": "text", "text": f"Flagged {len(question_ids)} questions needed - will trigger backward transition"}]}
 
         @tool(
             "mark_synthesis_complete",
@@ -409,6 +452,8 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             tools=[
                 emit_category,
                 emit_question,
+                mark_question_tree_presented,
+                mark_question_tree_approved,
                 mark_decompose_complete,
                 emit_answer,
                 skip_question,
@@ -442,6 +487,14 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
         visit_count = self.phase_context.get_visit_count(phase)
         prompt = self._get_phase_prompt(phase, visit_count)
         allowed_tools = self._get_allowed_tools(phase)
+
+        # For interactive phases, include the user's response in the prompt
+        is_user_response = message and message != self.journey_brief.original_question
+        if is_user_response and phase in [
+            ResearchPhase.DECOMPOSE,
+            ResearchPhase.ANSWER,
+        ]:
+            prompt += f"\n\n**User's Input:** {message}\n\nConsider this input and continue with your research."
 
         # Build SDK options
         options = ClaudeAgentOptions(
@@ -502,6 +555,8 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             ResearchPhase.DECOMPOSE: [
                 "mcp__research__emit_category",
                 "mcp__research__emit_question",
+                "mcp__research__mark_question_tree_presented",
+                "mcp__research__mark_question_tree_approved",
                 "mcp__research__mark_decompose_complete",
             ],
             ResearchPhase.ANSWER: [
@@ -534,7 +589,14 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
         """Get the prompt for a phase (initial or re-entry)."""
 
         if phase == ResearchPhase.DECOMPOSE:
-            if visit_count <= 1:
+            # Check if we're resuming mid-decomposition (tree presented, waiting for approval)
+            if self.phase_context.question_tree_presented and not self.phase_context.question_tree_approved:
+                # User has responded to question tree presentation - use resume prompt
+                return DECOMPOSE_RESUME_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                    question_tree_summary=self._format_question_tree_summary(),
+                )
+            elif visit_count <= 1:
                 return DECOMPOSE_INITIAL_PROMPT.format(
                     topic=self.journey_brief.original_question,
                     learner_context=self.journey_brief.implicit_question or "",
@@ -590,6 +652,21 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
                 )
 
         return ""
+
+    def _get_awaiting_input_prompt(self) -> str:
+        """Get a phase-specific prompt for when awaiting user input."""
+        phase = self.current_phase
+
+        if phase == ResearchPhase.DECOMPOSE:
+            num_categories = len(self.phase_context.categories)
+            num_questions = len(self.phase_context.questions)
+            return f"I've generated {num_categories} categories with {num_questions} questions. Would you like to proceed, or adjust the question tree?"
+
+        elif phase == ResearchPhase.ANSWER:
+            unanswered = self.phase_context.get_unanswered_questions()
+            return f"I have {len(unanswered)} questions remaining to answer. Should I continue researching?"
+
+        return "I'm waiting for your response to continue."
 
     # =========================================================================
     # Transition Evaluation
@@ -673,6 +750,17 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             )
             lines.append(f"**{cat_name}**: {insight}")
         return "\n\n".join(lines) if lines else "No insights yet"
+
+    def _format_question_tree_summary(self) -> str:
+        """Format question tree summary for resume prompt."""
+        lines = []
+        for cat in self.phase_context.categories:
+            cat_questions = [q for q in self.phase_context.questions if q.category_id == cat.id]
+            high = sum(1 for q in cat_questions if q.priority == "high")
+            medium = sum(1 for q in cat_questions if q.priority == "medium")
+            low = sum(1 for q in cat_questions if q.priority == "low")
+            lines.append(f"**{cat.category}**: {len(cat_questions)} questions (High: {high}, Medium: {medium}, Low: {low})")
+        return "\n".join(lines) if lines else "No categories generated yet"
 
     def _format_adjacent_questions(self) -> str:
         """Format adjacent questions for prompt."""

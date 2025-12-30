@@ -46,7 +46,9 @@ from .phases import (
 from .prompts import (
     SYSTEM_PROMPT,
     ANCHOR_DISCOVERY_PROMPT,
+    ANCHOR_DISCOVERY_RESUME_PROMPT,
     CLASSIFY_PROMPT,
+    CLASSIFY_RESUME_PROMPT,
     SEQUENCE_DESIGN_PROMPT,
     CONSTRUCTION_INITIAL_PROMPT,
     CONSTRUCTION_REENTRY_PROMPT,
@@ -135,6 +137,32 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         """
         agent = self
 
+        # Helper to parse list strings from LLM (handles various formats)
+        def _parse_list_string(s: Any) -> list[str]:
+            """Parse a string into a list. Handles newlines, markdown bullets, JSON arrays."""
+            if isinstance(s, list):
+                return s
+            if not isinstance(s, str):
+                return []
+            import json
+            import re
+            s = s.strip()
+            # Try JSON array first
+            if s.startswith('['):
+                try:
+                    return json.loads(s)
+                except:
+                    pass
+            # Split by newlines (including escaped newlines)
+            lines = re.split(r'\n|\\n', s)
+            result = []
+            for line in lines:
+                # Remove markdown bullet points, dashes, asterisks
+                line = re.sub(r'^[\s\-\*•]+', '', line).strip()
+                if line:
+                    result.append(line)
+            return result
+
         # =================================================================
         # Phase 0: Anchor Discovery Tools
         # =================================================================
@@ -183,6 +211,17 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
             return {"content": [{"type": "text", "text": f"Primary anchor set to {args['anchor_id']}"}]}
 
         @tool(
+            "mark_anchor_questions_asked",
+            "Mark that anchor discovery questions have been presented to the learner. Call this AFTER asking about their experiences, then STOP and WAIT for their response.",
+            {}
+        )
+        async def mark_anchor_questions_asked(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that anchor questions were asked - agent should now wait for response."""
+            agent.phase_context.anchor_questions_asked = True
+
+            return {"content": [{"type": "text", "text": "Anchor questions presented. STOP and wait for the learner's response about their experiences before proceeding."}]}
+
+        @tool(
             "mark_anchors_confirmed",
             "Mark that anchors have been confirmed by learner",
             {"summary": str}
@@ -220,26 +259,29 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "emit_construction_slo",
-            "Add a construction SLO",
+            "Add a construction SLO. For in_scope and out_of_scope, provide newline-separated bullet points.",
             {
                 "statement": str,
                 "frame": str,
                 "anchor_id": str,
-                "in_scope": list,
-                "out_of_scope": list,
+                "in_scope": str,  # Newline-separated bullet points
+                "out_of_scope": str,  # Newline-separated bullet points
                 "code_mode_likely": bool,
                 "estimated_rounds": int,
             }
         )
         async def emit_construction_slo(args: dict[str, Any]) -> dict[str, Any]:
             """Add a construction SLO."""
+            in_scope = _parse_list_string(args.get("in_scope", ""))
+            out_of_scope = _parse_list_string(args.get("out_of_scope", ""))
+
             slo = ConstructionSLO(
                 id=str(uuid.uuid4()),
                 statement=args["statement"],
                 frame=args["frame"],
                 anchor_id=args["anchor_id"],
-                in_scope=args.get("in_scope", []),
-                out_of_scope=args.get("out_of_scope", []),
+                in_scope=in_scope,
+                out_of_scope=out_of_scope,
                 code_mode_likely=args.get("code_mode_likely", False),
                 estimated_rounds=args.get("estimated_rounds", 5),
             )
@@ -262,21 +304,41 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
             return {"content": [{"type": "text", "text": f"Construction SLO added: {slo.statement[:50]}..."}]}
 
         @tool(
+            "mark_slos_presented",
+            "Mark that SLOs have been presented to the learner for selection. Call this AFTER presenting all SLOs, then STOP and WAIT for the learner to select which ones they want.",
+            {}
+        )
+        async def mark_slos_presented(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that SLOs were presented - agent should now wait for selection."""
+            agent.phase_context.slos_presented = True
+
+            slo_count = len(agent.phase_context.slos)
+            return {"content": [{"type": "text", "text": f"{slo_count} SLOs presented. STOP and wait for the learner to select which ones they want before proceeding."}]}
+
+        @tool(
             "mark_slos_selected",
-            "Mark which SLOs the learner has selected",
-            {"selected_slo_ids": list}
+            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs.",
+            {"selected_slo_ids": str}  # "all" or comma-separated IDs
         )
         async def mark_slos_selected(args: dict[str, Any]) -> dict[str, Any]:
             """Record selected SLOs."""
-            agent.phase_context.selected_slo_ids = args["selected_slo_ids"]
+            raw = args.get("selected_slo_ids", "all")
+            if isinstance(raw, list):
+                selected_ids = raw
+            elif raw.lower().strip() == "all":
+                selected_ids = [s.id for s in agent.phase_context.slos]
+            else:
+                selected_ids = [s.strip() for s in raw.split(",") if s.strip()]
+
+            agent.phase_context.selected_slo_ids = selected_ids
             agent.phase_context.slos_confirmed = True
 
             agent.emitter.emit_sync(SSEEvent(
                 type="data.slos_selected",
-                payload={"selectedSloIds": args["selected_slo_ids"]},
+                payload={"selectedSloIds": selected_ids},
             ))
 
-            return {"content": [{"type": "text", "text": f"{len(args['selected_slo_ids'])} SLOs selected"}]}
+            return {"content": [{"type": "text", "text": f"{len(selected_ids)} SLOs selected"}]}
 
         # =================================================================
         # Phase 2: Sequence Design Tools
@@ -284,16 +346,18 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "emit_construction_sequence",
-            "Record the construction sequence for an SLO",
-            {"slo_id": str, "anchor": str, "bridge": str, "target": str, "scaffolds": list}
+            "Record the construction sequence for an SLO. scaffolds should be newline-separated.",
+            {"slo_id": str, "anchor": str, "bridge": str, "target": str, "scaffolds": str}
         )
         async def emit_construction_sequence(args: dict[str, Any]) -> dict[str, Any]:
             """Record construction sequence."""
+            scaffolds = _parse_list_string(args.get("scaffolds", ""))
+
             agent.phase_context.construction_sequences[args["slo_id"]] = {
                 "anchor": args["anchor"],
                 "bridge": args["bridge"],
                 "target": args["target"],
-                "scaffolds": args["scaffolds"],
+                "scaffolds": scaffolds,
             }
 
             agent.emitter.emit_sync(SSEEvent(
@@ -460,12 +524,14 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "emit_slo_summary",
-            "Emit completion summary for an SLO",
-            {"rounds": int, "surrenders": int, "effective_scaffolds": list, "key_moments": list}
+            "Emit completion summary for an SLO. effective_scaffolds and key_moments should be newline-separated.",
+            {"rounds": int, "surrenders": int, "effective_scaffolds": str, "key_moments": str}
         )
         async def emit_slo_summary(args: dict[str, Any]) -> dict[str, Any]:
             """Emit SLO summary."""
             slo = agent.phase_context.get_current_slo()
+            effective_scaffolds = _parse_list_string(args.get("effective_scaffolds", ""))
+            key_moments = _parse_list_string(args.get("key_moments", ""))
 
             agent.emitter.emit_sync(SSEEvent(
                 type="data.slo_complete",
@@ -474,8 +540,8 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                     "statement": slo.statement if slo else "",
                     "rounds": args["rounds"],
                     "surrenders": args["surrenders"],
-                    "effectiveScaffolds": args["effective_scaffolds"],
-                    "keyMoments": args["key_moments"],
+                    "effectiveScaffolds": effective_scaffolds,
+                    "keyMoments": key_moments,
                 },
             ))
 
@@ -509,23 +575,27 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "emit_session_insights",
-            "Record session insights from consolidation",
-            {"insights": list, "what_worked": list, "what_to_improve": list}
+            "Record session insights from consolidation. All fields should be newline-separated.",
+            {"insights": str, "what_worked": str, "what_to_improve": str}
         )
         async def emit_session_insights(args: dict[str, Any]) -> dict[str, Any]:
             """Record session insights."""
-            agent.phase_context.session_insights = args["insights"]
+            insights = _parse_list_string(args.get("insights", ""))
+            what_worked = _parse_list_string(args.get("what_worked", ""))
+            what_to_improve = _parse_list_string(args.get("what_to_improve", ""))
+
+            agent.phase_context.session_insights = insights
 
             agent.emitter.emit_sync(SSEEvent(
                 type="data.session_insights",
                 payload={
-                    "insights": args["insights"],
-                    "whatWorked": args["what_worked"],
-                    "whatToImprove": args["what_to_improve"],
+                    "insights": insights,
+                    "whatWorked": what_worked,
+                    "whatToImprove": what_to_improve,
                 },
             ))
 
-            return {"content": [{"type": "text", "text": f"{len(args['insights'])} insights recorded"}]}
+            return {"content": [{"type": "text", "text": f"{len(insights)} insights recorded"}]}
 
         @tool(
             "mark_consolidation_complete",
@@ -549,17 +619,19 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
 
         @tool(
             "emit_session_complete",
-            "Mark the entire build session as complete",
-            {"total_slos": int, "total_rounds": int, "concepts_built": list}
+            "Mark the entire build session as complete. concepts_built should be newline-separated.",
+            {"total_slos": int, "total_rounds": int, "concepts_built": str}
         )
         async def emit_session_complete(args: dict[str, Any]) -> dict[str, Any]:
             """Emit session completion."""
+            concepts_built = _parse_list_string(args.get("concepts_built", ""))
+
             agent.emitter.emit_sync(SSEEvent(
                 type="data.session_complete",
                 payload={
                     "totalSlos": args["total_slos"],
                     "totalRounds": args["total_rounds"],
-                    "conceptsBuilt": args["concepts_built"],
+                    "conceptsBuilt": concepts_built,
                     "completedSloIds": agent.phase_context.completed_slo_ids,
                 },
             ))
@@ -600,10 +672,12 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                 # Phase 0
                 emit_anchor,
                 set_primary_anchor,
+                mark_anchor_questions_asked,
                 mark_anchors_confirmed,
                 # Phase 1
                 emit_topic_type,
                 emit_construction_slo,
+                mark_slos_presented,
                 mark_slos_selected,
                 # Phase 2
                 emit_construction_sequence,
@@ -645,6 +719,14 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         visit_count = self.phase_context.get_visit_count(phase)
         prompt = self._get_phase_prompt(phase, visit_count)
         allowed_tools = self._get_allowed_tools(phase)
+
+        # For interactive phases, include the user's response in the prompt
+        is_user_response = message and message != self.journey_brief.original_question
+        if is_user_response and phase in [
+            BuildPhase.ANCHOR_DISCOVERY,
+            BuildPhase.CONSTRUCTION,
+        ]:
+            prompt += f"\n\n**Learner's Response:** {message}\n\nEvaluate this response and continue with the appropriate next step."
 
         options = ClaudeAgentOptions(
             system_prompt=SYSTEM_PROMPT,
@@ -712,11 +794,13 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
             BuildPhase.ANCHOR_DISCOVERY: [
                 "mcp__build__emit_anchor",
                 "mcp__build__set_primary_anchor",
+                "mcp__build__mark_anchor_questions_asked",
                 "mcp__build__mark_anchors_confirmed",
             ],
             BuildPhase.CLASSIFY: [
                 "mcp__build__emit_topic_type",
                 "mcp__build__emit_construction_slo",
+                "mcp__build__mark_slos_presented",
                 "mcp__build__mark_slos_selected",
             ],
             BuildPhase.SEQUENCE_DESIGN: [
@@ -755,17 +839,40 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         """Get the prompt for a phase."""
 
         if phase == BuildPhase.ANCHOR_DISCOVERY:
-            return ANCHOR_DISCOVERY_PROMPT.format(
-                topic=self.journey_brief.original_question,
-            )
+            # Check if we're resuming mid-discovery (questions asked, waiting for response)
+            if self.phase_context.anchor_questions_asked and not self.phase_context.anchors_confirmed:
+                # User has responded to anchor questions - use resume prompt
+                return ANCHOR_DISCOVERY_RESUME_PROMPT.format(
+                    existing_anchors=self._format_anchors(),
+                )
+            else:
+                # First time - present anchor discovery questions
+                return ANCHOR_DISCOVERY_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                )
 
         elif phase == BuildPhase.CLASSIFY:
-            primary = self.phase_context.get_anchor(self.phase_context.primary_anchor_id)
-            return CLASSIFY_PROMPT.format(
-                topic=self.journey_brief.original_question,
-                primary_anchor=primary.description if primary else "(none)",
-                anchors=self._format_anchors(),
-            )
+            # Check if we're resuming mid-classification (SLOs presented, waiting for selection)
+            if self.phase_context.slos_presented and not self.phase_context.slos_confirmed:
+                # User has responded to SLO presentation - use resume prompt
+                primary = self.phase_context.get_anchor(self.phase_context.primary_anchor_id)
+                slo_list = "\n".join([
+                    f"- {s.statement} (frame: {s.frame})"
+                    for s in self.phase_context.slos
+                ])
+                return CLASSIFY_RESUME_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                    primary_anchor=primary.description if primary else "(none)",
+                    slo_list=slo_list if slo_list else "(no SLOs generated yet)",
+                )
+            else:
+                # First time - generate and present SLOs
+                primary = self.phase_context.get_anchor(self.phase_context.primary_anchor_id)
+                return CLASSIFY_PROMPT.format(
+                    topic=self.journey_brief.original_question,
+                    primary_anchor=primary.description if primary else "(none)",
+                    anchors=self._format_anchors(),
+                )
 
         elif phase == BuildPhase.SEQUENCE_DESIGN:
             return SEQUENCE_DESIGN_PROMPT.format(
@@ -883,6 +990,39 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                 rounds = len(self.phase_context.construction_rounds.get(slo.id, []))
                 lines.append(f"| {slo.statement[:30]}... | {status} | {rounds} |")
         return "\n".join(lines) if lines else "| No SLOs |"
+
+    # =========================================================================
+    # Awaiting Input Detection
+    # =========================================================================
+
+    def _get_awaiting_input_prompt(self) -> str | None:
+        """
+        Return a prompt message if the agent is waiting for user input.
+
+        This override provides Build-specific messages for phases that require
+        user interaction before continuing.
+        """
+        phase = self.current_phase
+
+        if phase == BuildPhase.ANCHOR_DISCOVERY:
+            # If anchor questions asked but not confirmed, we're waiting for experiences
+            if self.phase_context.anchor_questions_asked and not self.phase_context.anchors_confirmed:
+                return "Share your experiences with the concepts mentioned above so I can identify good anchors to build from."
+
+        elif phase == BuildPhase.CLASSIFY:
+            # If SLOs presented but not confirmed, we're waiting for selection
+            if self.phase_context.slos_presented and not self.phase_context.slos_confirmed:
+                slo_count = len(self.phase_context.slos)
+                return f"I've presented {slo_count} learning objectives. Which would you like to explore? You can select specific ones or say 'all'."
+
+        elif phase == BuildPhase.CONSTRUCTION:
+            # During construction, we're always in an interactive loop
+            slo = self.phase_context.get_current_slo()
+            if slo:
+                return f"Working on: {slo.statement[:50]}... Share your thoughts or answer the question above."
+
+        # No specific waiting state
+        return None
 
     # =========================================================================
     # Completion

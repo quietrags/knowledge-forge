@@ -117,12 +117,14 @@ class UnderstandPhaseContext(BasePhaseContext):
     pace: str = "standard"  # standard, thorough, focused
     style: str = "balanced"  # balanced, example-heavy, theory-first, visual
     learner_context: str = ""
+    config_questions_asked: bool = False  # Track if we've asked config questions
     session_configured: bool = False
 
     # Stage 1: Topic classification and SLOs
     topic_type: str = "ATOMIC"  # ATOMIC, COMPOSITE, SYSTEM, FIELD
     slos: list[SLO] = field(default_factory=list)
     selected_slo_ids: list[str] = field(default_factory=list)
+    slos_presented: bool = False  # Track if we've presented SLOs to user
     slos_confirmed: bool = False
 
     # Stage 2-4: Current SLO tracking
@@ -334,11 +336,13 @@ class UnderstandPhaseContext(BasePhaseContext):
             "pace": self.pace,
             "style": self.style,
             "learner_context": self.learner_context,
+            "config_questions_asked": self.config_questions_asked,
             "session_configured": self.session_configured,
             # Stage 1
             "topic_type": self.topic_type,
             "slos": [s.model_dump(by_alias=True) for s in self.slos],
             "selected_slo_ids": self.selected_slo_ids,
+            "slos_presented": self.slos_presented,
             "slos_confirmed": self.slos_confirmed,
             # Stage 2-4
             "current_slo_index": self.current_slo_index,
@@ -371,11 +375,13 @@ class UnderstandPhaseContext(BasePhaseContext):
         ctx.pace = data.get("pace", "standard")
         ctx.style = data.get("style", "balanced")
         ctx.learner_context = data.get("learner_context", "")
+        ctx.config_questions_asked = data.get("config_questions_asked", False)
         ctx.session_configured = data.get("session_configured", False)
         # Stage 1
         ctx.topic_type = data.get("topic_type", "ATOMIC")
         ctx.slos = [SLO(**s) for s in data.get("slos", [])]
         ctx.selected_slo_ids = data.get("selected_slo_ids", [])
+        ctx.slos_presented = data.get("slos_presented", False)
         ctx.slos_confirmed = data.get("slos_confirmed", False)
         # Stage 2-4
         ctx.current_slo_index = data.get("current_slo_index", 0)

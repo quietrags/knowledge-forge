@@ -95,7 +95,32 @@ Step 4: Confirm Anchor Selection
 "So you've got solid experience with [ANCHOR A] and some familiarity with [ANCHOR B].
 I'll use [PRIMARY ANCHOR] as our main building block. Sound good?"
 
-Use mark_anchors_confirmed when the learner confirms."""
+**CRITICAL**: After asking anchor discovery questions:
+1. Call mark_anchor_questions_asked to record that you've asked
+2. STOP and WAIT for the learner's response about their experiences
+3. Do NOT call mark_anchors_confirmed until the learner has actually responded
+4. Do NOT proceed to classification until anchors are confirmed
+
+Present the anchor questions and then wait for the learner's input."""
+
+
+ANCHOR_DISCOVERY_RESUME_PROMPT = """Continuing Anchor Discovery.
+
+The learner has responded to your anchor discovery questions.
+
+**Discovered Anchors So Far:**
+{existing_anchors}
+
+**Learner's Response:** (included below)
+
+Based on their response:
+1. Identify any new anchors from their experience
+2. Use emit_anchor to record each anchor with strength and evidence
+3. Use set_primary_anchor to set the best anchor to build from
+4. Present the anchor summary and ask for confirmation
+5. Use mark_anchors_confirmed only after they explicitly confirm
+
+IMPORTANT: If the learner's response is included below, use it to discover and record anchors."""
 
 
 # =============================================================================
@@ -137,7 +162,33 @@ Step 3: Present to Learner
 "[TOPIC] has several aspects we could build. Which would you like to explore?"
 Show how each SLO connects to their anchors.
 
-Use mark_slos_selected when learner confirms their choices."""
+**CRITICAL**: After generating and presenting SLOs:
+1. Call mark_slos_presented to record that you've shown them
+2. STOP and WAIT for the learner to select which SLOs they want
+3. Do NOT call mark_slos_selected until the learner has actually responded
+4. Do NOT proceed to sequence design until SLOs are confirmed
+
+Present the SLOs clearly and then wait for the learner's selection."""
+
+
+CLASSIFY_RESUME_PROMPT = """Continuing SLO Selection.
+
+Topic: {topic}
+Primary Anchor: {primary_anchor}
+
+**SLOs Already Generated:**
+{slo_list}
+
+The learner has responded to select which SLOs they want to explore.
+
+**Learner's Response:** (included below)
+
+Based on their response:
+1. Identify which SLOs they selected (or if they said "all")
+2. Call mark_slos_selected with the selected SLO IDs
+3. Confirm the selection and prepare for sequence design
+
+IMPORTANT: If the learner's response is included below, use it to finalize their SLO selection."""
 
 
 # =============================================================================

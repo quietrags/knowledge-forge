@@ -91,7 +91,35 @@ For each category, output:
 
 Use the provided tools to emit each category and question as you generate them.
 </output_format>
-"""
+
+**CRITICAL**: After generating all categories and questions:
+1. Call mark_question_tree_presented to record that you've shown the tree
+2. STOP and WAIT for the user to approve or adjust the question tree
+3. Do NOT call mark_question_tree_approved until the user has actually responded
+4. Do NOT proceed to answering questions until the tree is approved
+
+Present a summary of the question tree and then wait for user approval."""
+
+
+DECOMPOSE_RESUME_PROMPT = """Continuing with question tree approval.
+
+<topic>
+{topic}
+</topic>
+
+**Question Tree Already Generated:**
+{question_tree_summary}
+
+The user has responded to your question tree presentation.
+
+**User's Response:** (included below)
+
+Based on their response:
+1. If they approve, call mark_question_tree_approved
+2. If they want changes, make the adjustments and present the updated tree
+3. If they want to add questions, use emit_question to add them
+
+IMPORTANT: If the user's response is included below, use it to finalize the question tree."""
 
 DECOMPOSE_REENTRY_PROMPT = """You are returning to the DECOMPOSE phase.
 

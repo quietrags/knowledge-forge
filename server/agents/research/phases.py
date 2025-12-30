@@ -112,6 +112,7 @@ class ResearchPhaseContext(BasePhaseContext):
     # DECOMPOSE phase state
     categories: list[CategoryQuestion] = field(default_factory=list)
     questions: list[Question] = field(default_factory=list)
+    question_tree_presented: bool = False  # Track if question tree was shown to user
     question_tree_approved: bool = False
 
     # ANSWER phase state
@@ -177,6 +178,7 @@ class ResearchPhaseContext(BasePhaseContext):
             "backward_trigger_detail": self.backward_trigger_detail,
             "categories": [c.model_dump(by_alias=True) for c in self.categories],
             "questions": [q.model_dump(by_alias=True) for q in self.questions],
+            "question_tree_presented": self.question_tree_presented,
             "question_tree_approved": self.question_tree_approved,
             "answered_question_ids": list(self.answered_question_ids),
             "skipped_question_ids": list(self.skipped_question_ids),
@@ -200,6 +202,7 @@ class ResearchPhaseContext(BasePhaseContext):
         ctx.questions = [
             Question(**q) for q in data.get("questions", [])
         ]
+        ctx.question_tree_presented = data.get("question_tree_presented", False)
         ctx.question_tree_approved = data.get("question_tree_approved", False)
         ctx.answered_question_ids = set(data.get("answered_question_ids", []))
         ctx.skipped_question_ids = set(data.get("skipped_question_ids", []))

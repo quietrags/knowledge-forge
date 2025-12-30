@@ -85,16 +85,34 @@ You should ask about:
 3. **Prior Context** (optional)
    Examples: "I'm a backend dev learning frontend", "Preparing for an interview"
 
-Use the emit_session_config tool to record preferences once gathered.
+**CRITICAL**: After presenting these options:
+1. Call mark_config_questions_asked to record that you've asked
+2. STOP and WAIT for the learner's response
+3. Do NOT call emit_session_config until the learner has actually responded with their preferences
+4. Do NOT proceed to generate SLOs until preferences are confirmed
 
-After preferences are set, confirm with the learner:
-"Here's how we'll work together:
-- **Pace:** [their choice]
-- **Style:** [their choice]
-- **Your context:** [their input]
+Present the options clearly and then wait for the learner's input."""
 
-I'll start by breaking down the topic into learning objectives, then we'll calibrate where you're starting from. Ready to begin?"
-"""
+
+CONFIGURE_RESUME_PROMPT = """Continuing session configuration.
+
+The learner has responded to your configuration questions.
+
+**Learner's Response:** (included below)
+
+Based on their response:
+1. Extract their preferences for pace, style, and context
+2. Call emit_session_config with their choices
+3. Confirm with the learner:
+   "Here's how we'll work together:
+   - **Pace:** [their choice]
+   - **Style:** [their choice]
+   - **Your context:** [their input]
+
+   I'll start by breaking down the topic into learning objectives, then we'll calibrate where you're starting from. Ready to begin?"
+
+IMPORTANT: If the learner's response is included below, use it to set their preferences."""
+
 
 
 # =============================================================================
@@ -130,7 +148,32 @@ For each SLO, use the emit_slo tool with:
 - sample_transfer_check: One question that would verify mastery
 - estimated_rounds: 2-4 for atomic aspects, 4-7 for complex
 
-Present options to learner with checkboxes. Use mark_slos_selected when they confirm."""
+**CRITICAL**: After generating and presenting SLOs:
+1. Call mark_slos_presented to record that you've shown them
+2. STOP and WAIT for the learner to select which SLOs they want
+3. Do NOT call mark_slos_selected until the learner has actually responded
+4. Do NOT proceed to calibration until SLOs are confirmed
+
+Present the SLOs clearly with checkboxes and then wait for the learner's selection."""
+
+
+CLASSIFY_RESUME_PROMPT = """Continuing SLO selection.
+
+Topic: {topic}
+
+**SLOs Already Generated:**
+{slo_list}
+
+The learner has responded to select which SLOs they want to explore.
+
+**Learner's Response:** (included below)
+
+Based on their response:
+1. Identify which SLOs they selected (or if they said "all")
+2. Call mark_slos_selected with the selected SLO IDs
+3. Confirm the selection and prepare for calibration
+
+IMPORTANT: If the learner's response is included below, use it to finalize their SLO selection."""
 
 
 # =============================================================================

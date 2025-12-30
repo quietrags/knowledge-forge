@@ -149,12 +149,14 @@ class BuildPhaseContext(BasePhaseContext):
     # Phase 0: Anchor Discovery
     anchors: list[Anchor] = field(default_factory=list)
     primary_anchor_id: Optional[str] = None
+    anchor_questions_asked: bool = False  # Track if we've asked anchor questions
     anchors_confirmed: bool = False
 
     # Phase 1: Classification and SLOs
     topic_type: str = "ATOMIC"  # ATOMIC, COMPOSITE, SYSTEM, FIELD
     slos: list[ConstructionSLO] = field(default_factory=list)
     selected_slo_ids: list[str] = field(default_factory=list)
+    slos_presented: bool = False  # Track if we've presented SLOs to user
     slos_confirmed: bool = False
 
     # Phase 2: Sequence Design
@@ -325,6 +327,7 @@ class BuildPhaseContext(BasePhaseContext):
                 for a in self.anchors
             ],
             "primary_anchor_id": self.primary_anchor_id,
+            "anchor_questions_asked": self.anchor_questions_asked,
             "anchors_confirmed": self.anchors_confirmed,
             # Phase 1
             "topic_type": self.topic_type,
@@ -338,6 +341,7 @@ class BuildPhaseContext(BasePhaseContext):
                 for s in self.slos
             ],
             "selected_slo_ids": self.selected_slo_ids,
+            "slos_presented": self.slos_presented,
             "slos_confirmed": self.slos_confirmed,
             # Phase 2
             "construction_sequences": self.construction_sequences,
@@ -378,11 +382,13 @@ class BuildPhaseContext(BasePhaseContext):
         # Phase 0
         ctx.anchors = [Anchor(**a) for a in data.get("anchors", [])]
         ctx.primary_anchor_id = data.get("primary_anchor_id")
+        ctx.anchor_questions_asked = data.get("anchor_questions_asked", False)
         ctx.anchors_confirmed = data.get("anchors_confirmed", False)
         # Phase 1
         ctx.topic_type = data.get("topic_type", "ATOMIC")
         ctx.slos = [ConstructionSLO(**s) for s in data.get("slos", [])]
         ctx.selected_slo_ids = data.get("selected_slo_ids", [])
+        ctx.slos_presented = data.get("slos_presented", False)
         ctx.slos_confirmed = data.get("slos_confirmed", False)
         # Phase 2
         ctx.construction_sequences = data.get("construction_sequences", {})
