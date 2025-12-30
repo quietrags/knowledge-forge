@@ -67,10 +67,9 @@ Use the emit_knowledge_confidence tool when ready to proceed."""
 # Stage 0.5: Session Configuration
 # =============================================================================
 
-CONFIGURE_PROMPT = """Present session configuration options using EXACTLY this format (no variations):
+CONFIGURE_PROMPT = """**DO NOT generate any preamble, introduction, or additional text. Output ONLY the template below, then call the tool.**
 
----
-
+<template>
 **Before we start, let me tailor this session to you.**
 
 **1. Learning Pace**
@@ -88,14 +87,19 @@ CONFIGURE_PROMPT = """Present session configuration options using EXACTLY this f
 Tell me about your background if it's relevant (e.g., "backend dev learning frontend", "preparing for interview")
 
 What are your preferences?
+</template>
 
----
+**EXECUTION (mandatory):**
+1. Output ONLY the text inside <template> tags - nothing before, nothing after
+2. Call mark_config_questions_asked immediately
+3. STOP - generate no more text
 
-**EXECUTION INSTRUCTIONS (follow exactly):**
-1. Output the message above EXACTLY as formatted (no emoji, no variations, no additional text)
-2. Call mark_config_questions_asked IMMEDIATELY after outputting
-3. STOP generating - do not add any more text after the tool call
-4. Do NOT call emit_session_config until the learner responds with preferences"""
+**DO NOT:**
+- Add any "Welcome!" or introduction before the template
+- Add emoji
+- Rephrase or reformat the options
+- Add any text after the template
+- Call emit_session_config (wait for learner response first)"""
 
 
 CONFIGURE_RESUME_PROMPT = """Continuing session configuration.

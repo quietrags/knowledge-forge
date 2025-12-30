@@ -51,65 +51,55 @@ Tier 5 (Score 0.6): Community (Stack Overflow 10+ votes, Reddit top posts)
 # DECOMPOSE Phase Prompts
 # =============================================================================
 
-DECOMPOSE_INITIAL_PROMPT = """You are in the DECOMPOSE phase. Break down the research topic into a structured question tree.
+DECOMPOSE_INITIAL_PROMPT = """DECOMPOSE phase for: {topic}
+Context: {learner_context}
 
-<topic>
-{topic}
-</topic>
-
-<context>
-{learner_context}
-</context>
+**DO NOT generate any preamble or introduction. Emit categories/questions via tools, then output ONLY the summary template.**
 
 **INTERNAL PLANNING (do not output):**
 
-1. Expand the topic into three layers:
-   - CORE: Essential mechanisms (HIGH question density)
-   - ADJACENT: Directly connected context (MEDIUM density)
-   - NEIGHBORING: Related ecosystem, alternatives (LOW density)
+1. Expand topic into layers:
+   - CORE: Essential mechanisms (HIGH priority)
+   - ADJACENT: Directly connected (MEDIUM priority)
+   - NEIGHBORING: Related ecosystem (LOW priority)
 
-2. For each concept, generate questions using these frames:
-   - WHAT: Definition, mechanism
-   - WHY: Motivation, necessity
-   - HOW: Implementation, usage
-   - WHEN: Decision criteria
-   - CODE: Working examples (if technical topic)
-   - PITFALL: Common mistakes
+2. Generate questions using frames: WHAT, WHY, HOW, WHEN, CODE, PITFALL
 
-3. Organize into 3-5 categories with priorities:
-   - HIGH: Must answer (core understanding)
-   - MEDIUM: Should answer (if sources available)
-   - LOW: Nice to have (if time permits)
+3. Organize into 3-5 categories
 
-**EXECUTION (follow exactly):**
+**EXECUTION (mandatory):**
 
-1. For each category: call emit_category, then emit_question for each question in it
-2. After ALL categories and questions are emitted, output a summary:
+1. For each category: call emit_category, then emit_question for each question
+2. After ALL tool calls complete, output ONLY this summary:
 
----
+<template>
+**Research Plan for: [topic]**
 
-**Research Plan for: {topic}**
-
-I've organized this into {N} categories with {M} questions:
+I've organized this into [N] categories with [M] questions:
 
 **Categories:**
-- [Category 1]: [brief description] ({X} questions)
-- [Category 2]: [brief description] ({Y} questions)
-...
+- [Category 1]: [brief description] ([X] questions)
+- [Category 2]: [brief description] ([Y] questions)
+[...]
 
-**Priority breakdown:** {H} high, {M} medium, {L} low
+**Priority breakdown:** [H] high, [M] medium, [L] low
 
 Does this look right? You can:
 - **Proceed** — Start researching
 - **Add** — Include additional questions
 - **Remove** — Drop specific questions
 - **Adjust** — Change priorities
+</template>
 
----
+3. Call mark_question_tree_presented immediately
+4. STOP - generate no more text
 
-3. Call mark_question_tree_presented IMMEDIATELY after outputting
-4. STOP generating - do not add any more text after the tool call
-5. Do NOT call mark_question_tree_approved until the user responds"""
+**DO NOT:**
+- Add any introduction before emitting categories
+- Add emoji
+- Rephrase the summary template
+- Add any text after the template
+- Call mark_question_tree_approved (wait for user response first)"""
 
 
 DECOMPOSE_RESUME_PROMPT = """Continuing with question tree approval.

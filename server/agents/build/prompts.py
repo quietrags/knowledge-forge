@@ -61,29 +61,11 @@ Use these tools to maintain state and emit events to the frontend."""
 # Phase 0: Anchor Discovery
 # =============================================================================
 
-ANCHOR_DISCOVERY_PROMPT = """[PLAN] Begin Anchor Discovery for: {topic}
+ANCHOR_DISCOVERY_PROMPT = """[PLAN] Anchor Discovery for: {topic}
 
-Output EXACTLY this format (then immediately call mark_anchor_questions_asked):
+**DO NOT generate any preamble, introduction, or additional text. Output ONLY the template below with questions filled in, then call the tool.**
 
----
-
-**Let's find what you already know that we can build on.**
-
-I want to understand your experience—not to test you, but to find the best starting points.
-
-**A few questions:**
-
-1. {anchor_question_1}
-2. {anchor_question_2}
-3. {anchor_question_3}
-
-Just share what comes to mind—even partial experience is useful!
-
----
-
-**BEFORE OUTPUTTING, generate appropriate anchor questions internally:**
-
-Example mappings:
+First, internally generate 3 anchor discovery questions for this topic. Examples:
 | Topic | Good Questions |
 |-------|---------------|
 | ReACT agents | "Have you debugged code with print statements? Talked through a problem out loud?" |
@@ -91,14 +73,31 @@ Example mappings:
 | Recursion | "Have you opened nested boxes? Seen mirrors facing each other?" |
 | REST APIs | "Have you filled out a form online? Ordered food at a restaurant with a menu?" |
 
-Replace {{anchor_question_1}}, {{anchor_question_2}}, {{anchor_question_3}} with topic-appropriate questions.
+<template>
+**Let's find what you already know that we can build on.**
 
-**EXECUTION INSTRUCTIONS (follow exactly):**
-1. Generate 3 anchor discovery questions for this specific topic
-2. Output the message above with your questions filled in
-3. Call mark_anchor_questions_asked IMMEDIATELY after outputting
-4. STOP generating - do not add any more text after the tool call
-5. Do NOT call emit_anchor or mark_anchors_confirmed until the learner responds"""
+I want to understand your experience—not to test you, but to find the best starting points.
+
+**A few questions:**
+
+1. [YOUR QUESTION 1]
+2. [YOUR QUESTION 2]
+3. [YOUR QUESTION 3]
+
+Just share what comes to mind—even partial experience is useful!
+</template>
+
+**EXECUTION (mandatory):**
+1. Output ONLY the text inside <template> tags with your questions filled in - nothing before, nothing after
+2. Call mark_anchor_questions_asked immediately
+3. STOP - generate no more text
+
+**DO NOT:**
+- Add any "Welcome!" or introduction before the template
+- Add emoji
+- Rephrase or reformat the template
+- Add any text after the template
+- Call emit_anchor or mark_anchors_confirmed (wait for learner response first)"""
 
 
 ANCHOR_DISCOVERY_RESUME_PROMPT = """Continuing Anchor Discovery.
