@@ -404,8 +404,20 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         # =================================================================
 
         @tool(
+            "mark_scaffold_delivered",
+            "Mark that a scaffold (question/scenario) has been delivered to the learner. Call this AFTER presenting a scaffold, then STOP and WAIT for the learner's response.",
+            {"scaffold_type": str}
+        )
+        async def mark_scaffold_delivered(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that a scaffold was delivered - agent should now wait for response."""
+            scaffold_type = args.get("scaffold_type", "question")
+            agent.phase_context.awaiting_user_input = True
+
+            return {"content": [{"type": "text", "text": f"Scaffold ({scaffold_type}) delivered. STOP and wait for the learner's response before evaluating."}]}
+
+        @tool(
             "record_construction_round",
-            "Record a construction round",
+            "Record a construction round AFTER evaluating the learner's response. Do not call this until the learner has responded.",
             {
                 "scaffold_type": str,
                 "scaffold_content": str,
@@ -696,6 +708,7 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
                 emit_construction_sequence,
                 mark_sequences_designed,
                 # Phase 3
+                mark_scaffold_delivered,
                 record_construction_round,
                 set_scaffold_level,
                 enter_code_mode,
@@ -828,6 +841,7 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
             ],
             BuildPhase.CONSTRUCTION: [
                 "WebSearch",
+                "mcp__build__mark_scaffold_delivered",
                 "mcp__build__record_construction_round",
                 "mcp__build__set_scaffold_level",
                 "mcp__build__enter_code_mode",

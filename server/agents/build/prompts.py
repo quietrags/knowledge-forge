@@ -235,35 +235,42 @@ Connected Anchor: {anchor_description}
 Scaffold Level: {scaffold_level}
 Mode: {mode}
 
-Each round follows Think→Act→Observe:
+**CRITICAL - ONE SCAFFOLD PER TURN:**
 
-THINK (internal):
-- What is learner's current schema?
-- What's the gap between current state and target?
-- What scaffold level is appropriate?
-- Am I in normal mode, surrender recovery, or code mode?
+Each round follows Think→Act→Wait:
 
-ACT (deliver scaffold):
-- Question that invites discovery
-- Scenario to reason through
-- Partial answer to complete
-- Code to examine/complete/debug
+1. THINK (internal):
+   - What is learner's current schema?
+   - What's the gap between current state and target?
+   - What scaffold level is appropriate?
 
-OBSERVE (assess response):
-- CONSTRUCTED: Learner built the concept
-- PARTIAL: Right direction, incomplete
-- STUCK: Not making progress
-- SURRENDERED: "I don't know"
-- UNEXPECTED: Went different direction
+2. ACT (deliver scaffold):
+   - Question that invites discovery
+   - Scenario to reason through
+   - Partial answer to complete
+   - Code to examine/complete/debug
 
-After each round, use record_construction_round with the outcome.
+3. Call mark_scaffold_delivered with the scaffold_type
 
-Response Handling:
-- CONSTRUCTED → Acknowledge, lighten scaffold, verify if target reached
-- PARTIAL → Acknowledge what's right, hint at missing part
-- STUCK → Try different framing, heavier scaffold, or different anchor
-- SURRENDERED → Execute Surrender Recovery Protocol
-- UNEXPECTED → Assess if valid alternative, redirect if needed
+4. STOP - generate no more text and wait for the learner's response
+
+When the learner's response is included below:
+1. OBSERVE (assess response):
+   - CONSTRUCTED: Learner built the concept
+   - PARTIAL: Right direction, incomplete
+   - STUCK: Not making progress
+   - SURRENDERED: "I don't know"
+   - UNEXPECTED: Went different direction
+
+2. Call record_construction_round with the outcome
+
+3. Handle based on outcome:
+   - CONSTRUCTED → Acknowledge, check if target reached
+   - PARTIAL → Acknowledge what's right, hint at missing part
+   - STUCK → Try different framing, heavier scaffold
+   - SURRENDERED → Execute Surrender Recovery
+
+4. Deliver the NEXT scaffold (call mark_scaffold_delivered, then STOP)
 
 Exit when learner:
 1. Uses concept without scaffold
@@ -284,9 +291,11 @@ Mode: {mode}
 **Previous Rounds (already completed):**
 {previous_rounds}
 
-The learner has responded to your most recent scaffold. Continue the construction loop:
+**CRITICAL - ONE SCAFFOLD PER TURN:**
 
-1. Evaluate the learner's response using the outcome categories:
+The learner has responded. Continue the construction loop:
+
+1. Evaluate the learner's response:
    - CONSTRUCTED: Learner built the concept
    - PARTIAL: Right direction, incomplete
    - STUCK: Not making progress
@@ -295,21 +304,23 @@ The learner has responded to your most recent scaffold. Continue the constructio
 
 2. Call record_construction_round to record this round's outcome
 
-3. Adjust scaffold based on outcome:
-   - CONSTRUCTED → Lighten scaffold, verify if target reached
+3. Handle based on outcome:
+   - CONSTRUCTED → Acknowledge, check if target reached
    - PARTIAL → Acknowledge what's right, hint at missing part
    - STUCK → Try different framing, heavier scaffold
    - SURRENDERED → Execute Surrender Recovery
-   - UNEXPECTED → Assess if valid alternative
 
-4. Deliver the next scaffold OR mark_construction_verified if complete
+4. If not complete:
+   - Deliver the NEXT scaffold
+   - Call mark_scaffold_delivered
+   - STOP - wait for learner's response
+
+5. If complete, call mark_construction_verified
 
 Exit when learner:
 - Uses concept without scaffold
 - Transfers to novel scenario
-- Can explain to hypothetical other person
-
-IMPORTANT: If the learner's response is included below, evaluate it and continue."""
+- Can explain to hypothetical other person"""
 
 
 CONSTRUCTION_REENTRY_PROMPT = """[REACT] Continuing Construction Loop.
@@ -321,8 +332,16 @@ SLO: {slo_statement}
 Current Scaffold Level: {scaffold_level}
 Mode: {mode}
 
+**CRITICAL - ONE SCAFFOLD PER TURN:**
+
 Continue the construction loop. The learner has already made some progress.
-Build on what was constructed, adjusting scaffold as needed."""
+Build on what was constructed, adjusting scaffold as needed.
+
+1. Deliver a scaffold appropriate for current state
+2. Call mark_scaffold_delivered
+3. STOP - wait for learner's response
+
+When the learner responds, evaluate and continue."""
 
 
 SURRENDER_RECOVERY_PROMPT = """Learner has surrendered. Execute Surrender Recovery Protocol.
