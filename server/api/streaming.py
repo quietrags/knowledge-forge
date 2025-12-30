@@ -25,6 +25,7 @@ SSEEventType = Literal[
     "agent.thinking",
     "agent.speaking",
     "agent.complete",
+    "agent.awaiting_input",
     # Research data events
     "data.question.added",
     "data.question.updated",
@@ -132,6 +133,14 @@ def agent_complete(summary: str) -> SSEEvent:
     )
 
 
+def agent_awaiting_input(prompt: str, phase: str | None = None) -> SSEEvent:
+    """Create an agent.awaiting_input event to signal user turn."""
+    return SSEEvent(
+        type="agent.awaiting_input",
+        payload={"prompt": prompt, "phase": phase},
+    )
+
+
 def narrative_updated(mode: str, narrative: dict, delta: str | None = None) -> SSEEvent:
     """Create a narrative.updated event."""
     payload = {"mode": mode, "narrative": narrative}
@@ -197,7 +206,10 @@ class SSEStreamManager:
     async def emit(self, session_id: str, event: SSEEvent) -> None:
         """Emit an event to a session's stream."""
         if session_id in self._queues:
+            print(f"[DEBUG] SSE emit: type={event.type}, session={session_id[:8]}...")
             await self._queues[session_id].put(event)
+        else:
+            print(f"[DEBUG] SSE emit SKIPPED (no queue): type={event.type}, session={session_id[:8]}...")
 
     def emit_sync(self, session_id: str, event: SSEEvent) -> None:
         """Emit an event synchronously (for use in non-async contexts)."""
@@ -209,6 +221,7 @@ class SSEStreamManager:
         Subscribe to a session's event stream.
 
         Yields SSE-formatted event strings until the stream is closed.
+        Handles shutdown gracefully without propagating exceptions.
         """
         if session_id not in self._queues:
             self.create_stream(session_id)
@@ -221,17 +234,17 @@ class SSEStreamManager:
                     # Use timeout so we can respond to shutdown signals
                     event = await asyncio.wait_for(queue.get(), timeout=30.0)
                     if event is None:
-                        # Stream closed
+                        # Stream closed (shutdown signal received)
                         break
                     yield event.format()
                 except asyncio.TimeoutError:
                     # Send keepalive comment to maintain connection
                     yield ": keepalive\n\n"
-        except asyncio.CancelledError:
-            # Graceful shutdown on Ctrl-C
+        except (asyncio.CancelledError, GeneratorExit):
+            # Graceful shutdown - exit silently without propagating
             pass
-        finally:
-            # Clean up if we're the last subscriber
+        except Exception:
+            # Suppress any other exceptions during shutdown
             pass
 
     def has_stream(self, session_id: str) -> bool:

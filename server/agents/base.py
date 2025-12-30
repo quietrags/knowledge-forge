@@ -22,7 +22,7 @@ from typing import (
 )
 
 from server.persistence import JourneyDesignBrief, Session
-from server.api.streaming import SSEEvent, agent_thinking, agent_complete
+from server.api.streaming import SSEEvent, agent_thinking, agent_complete, agent_awaiting_input
 
 
 # =============================================================================
@@ -322,6 +322,15 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         """Generate a summary when the agent completes."""
         pass
 
+    def _get_awaiting_input_prompt(self) -> str:
+        """
+        Get a prompt to show when waiting for user input.
+
+        Override in subclasses to provide phase-specific prompts.
+        Default returns a generic message.
+        """
+        return "Please provide your response to continue."
+
     # =========================================================================
     # Lifecycle Methods
     # =========================================================================
@@ -418,9 +427,14 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         3. Handles checkpoints if required
         4. Continues until complete phase is reached
         """
+        print(f"[DEBUG] BaseForgeAgent.process_message: message={message[:50]}...")
+        print(f"[DEBUG] Current phase: {self.current_phase}, Complete phase: {self.complete_phase}")
         context = context or {}
 
+        iteration = 0
         while self.current_phase != self.complete_phase:
+            iteration += 1
+            print(f"[DEBUG] Phase loop iteration #{iteration}, current_phase={self.current_phase}")
             # Announce current phase (for debugging, not shown to user)
             visit_count = self.phase_context.get_visit_count(self.current_phase)
 
@@ -476,9 +490,23 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
 
                 # Clear transition reason
                 self._transition_reason = None
+            else:
+                # No transition occurred - the agent is likely waiting for user input
+                # Break the loop to allow user interaction, next process_message()
+                # call will continue from the same phase
+                print(f"[DEBUG] No transition from {self.current_phase}, breaking to wait for user input")
 
-        # Emit completion
-        yield agent_complete(self._generate_completion_summary())
+                # Emit awaiting_input event so frontend knows it's user's turn
+                input_prompt = self._get_awaiting_input_prompt()
+                yield agent_awaiting_input(
+                    prompt=input_prompt,
+                    phase=self.current_phase.value,
+                )
+                break
+
+        # Only emit completion if we reached the complete phase
+        if self.current_phase == self.complete_phase:
+            yield agent_complete(self._generate_completion_summary())
 
     # =========================================================================
     # Transition Evaluation
@@ -502,11 +530,17 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
             key=lambda t: (-int(t.is_backward), -t.priority),
         )
 
+        print(f"[DEBUG] Evaluating {len(sorted_transitions)} transitions from {self.current_phase}")
+
         for transition in sorted_transitions:
-            if self._evaluate_transition_condition(transition):
+            result = self._evaluate_transition_condition(transition)
+            print(f"[DEBUG]   {transition.condition}: {result}")
+            if result:
                 self._transition_reason = transition.condition
+                print(f"[DEBUG] Transitioning to {transition.to_phase}")
                 return transition.to_phase
 
+        print(f"[DEBUG] No transition triggered, staying in {self.current_phase}")
         return self.current_phase
 
     def _is_backward_transition(

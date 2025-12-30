@@ -10,6 +10,7 @@ import type {
   AgentThinkingPayload,
   AgentSpeakingPayload,
   AgentCompletePayload,
+  AgentAwaitingInputPayload,
   QuestionAddedPayload,
   QuestionUpdatedPayload,
   QuestionAnsweredPayload,
@@ -75,6 +76,7 @@ export interface StreamHandlers {
   onAgentThinking?: (payload: AgentThinkingPayload) => void
   onAgentSpeaking?: (payload: AgentSpeakingPayload) => void
   onAgentComplete?: (payload: AgentCompletePayload) => void
+  onAgentAwaitingInput?: (payload: AgentAwaitingInputPayload) => void
 
   // Research mode events
   onQuestionAdded?: (payload: QuestionAddedPayload) => void
@@ -154,6 +156,7 @@ const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
   'agent.thinking': 'onAgentThinking',
   'agent.speaking': 'onAgentSpeaking',
   'agent.complete': 'onAgentComplete',
+  'agent.awaiting_input': 'onAgentAwaitingInput',
   // Research mode
   'data.question.added': 'onQuestionAdded',
   'data.question.updated': 'onQuestionUpdated',
@@ -250,19 +253,24 @@ export function createJourneyStream(
       try {
         // Skip if no data (can happen with browser-level error events)
         if (!event.data) {
-          console.warn(`SSE event "${eventType}" received with no data`)
+          console.warn(`[DEBUG] SSE event "${eventType}" received with no data`)
           return
         }
+        console.log(`[DEBUG] SSE event received: ${eventType}`)
         // Parse the full event: {type, timestamp, payload}
         const eventData = JSON.parse(event.data)
+        console.log(`[DEBUG] SSE event payload:`, eventData.payload)
         // Extract just the payload for handlers
         const handler = handlers[handlerName as keyof StreamHandlers]
         if (handler) {
+          console.log(`[DEBUG] Calling handler: ${handlerName}`)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ;(handler as (p: any) => void)(eventData.payload)
+        } else {
+          console.log(`[DEBUG] No handler registered for: ${handlerName}`)
         }
       } catch (error) {
-        console.error(`Failed to parse SSE event "${eventType}":`, error)
+        console.error(`[DEBUG] Failed to parse SSE event "${eventType}":`, error)
       }
     })
   }

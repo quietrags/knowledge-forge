@@ -892,3 +892,65 @@ Ran comprehensive code review with 5 parallel agents. Found critical SSE event t
 1. Test end-to-end flow: start server, send question, verify SSE events render in UI
 2. Implement backend checkpoint handler (blocking approvals during agent execution)
 3. Consider adding React components to display new event types (anchors, SLOs, facets)
+
+---
+
+## Session: 2025-12-30 (Awaiting Input Signal + Calibration State Fix)
+
+### Summary
+Fixed two critical UX issues in the Understand agent's CALIBRATE phase: (1) No clear indication when user input was expected, causing agent to scroll continuously; (2) Calibration probes weren't persisted, causing agent to restart probes from beginning after each user response.
+
+### Decisions
+- **`agent.awaiting_input` SSE event**: New event type signals when agent is waiting for user input, enabling visual indicator in UI
+- **Probe state tracking per SLO**: Each SLO's calibration probes tracked separately via `calibration_probe_results[slo_id]` dict
+- **Resume prompt pattern**: When agent restores mid-calibration, use `CALIBRATE_RESUME_PROMPT` that tells agent exactly where to pick up
+
+### Learnings
+- **Multi-turn phases need granular state**: CALIBRATE requires 3 sequential probes, each waiting for user input. Without per-probe state tracking, agent had no memory of which probes were already asked.
+- **MCP tools for state recording**: Using `record_probe_result` tool lets agent record progress that persists across message turns, solving the "amnesia" problem.
+- **Phase loop break condition**: When no phase transition occurs and `next_phase == current_phase`, must break loop and emit `agent.awaiting_input` event.
+
+### Precious Context
+- **Probe tracking pattern**: `calibration_probe_results` is dict[str, dict[str, str]] keyed by SLO ID, containing probe type → result. Methods: `get_current_probe_results()`, `record_probe_result()`, `get_remaining_probes()`, `is_calibration_probes_complete()`.
+- **Resume prompt format**: `CALIBRATE_RESUME_PROMPT` includes `{probe_progress}` showing what's done and `{remaining_probes}` showing what's left.
+
+### Work Done
+- [x] **`agent.awaiting_input` SSE event**:
+  - Added event type to `server/api/streaming.py`
+  - Emitted from `server/agents/base.py` when phase loop breaks waiting for input
+  - Added payload type to `app/src/api/types.ts`
+  - Added handler to `app/src/api/streaming.ts`
+  - Added `awaitingInput` + `inputPrompt` state to Zustand store
+  - Added "Your turn" visual indicator to ConversationPanel with pulse animation
+- [x] **Calibration probe state tracking**:
+  - Added `calibration_probe_results` field to `UnderstandPhaseContext`
+  - Added probe tracking methods to phases.py
+  - Added `record_probe_result` MCP tool to agent.py
+  - Added `CALIBRATE_RESUME_PROMPT` to prompts.py
+  - Updated `_get_phase_prompt()` to detect mid-calibration and use resume prompt
+- [x] Created `ConversationPanel` component (extracted from App.tsx)
+
+### Files Modified
+```
+app/src/
+├── api/types.ts                # Added agent.awaiting_input event type
+├── api/streaming.ts            # Added onAgentAwaitingInput handler
+├── store/useStore.ts           # Added awaitingInput state + action
+├── App.tsx                     # Added onAgentAwaitingInput handler
+└── components/
+    ├── ChatInput/ChatInput.tsx # Clear awaitingInput on send
+    └── ConversationPanel/      # NEW - conversation display + "Your turn" indicator
+
+server/
+├── api/streaming.py            # Added agent_awaiting_input factory
+├── agents/base.py              # Emit awaiting_input when loop breaks
+└── agents/understand/
+    ├── agent.py                # Added record_probe_result tool
+    ├── phases.py               # Added probe tracking methods
+    └── prompts.py              # Added CALIBRATE_RESUME_PROMPT
+```
+
+### Next Session
+1. Test end-to-end flow with the new awaiting input indicator
+2. Consider adding probe progress indicator to UI (shows 1/3, 2/3, 3/3 probes complete)
+3. Apply same pattern to Build agent's multi-turn phases if needed

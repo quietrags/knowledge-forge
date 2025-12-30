@@ -86,6 +86,7 @@ export type SSEEventType =
   | 'agent.thinking'
   | 'agent.speaking'
   | 'agent.complete'
+  | 'agent.awaiting_input'
   // Research mode data events
   | 'data.question.added'
   | 'data.question.updated'
@@ -172,6 +173,11 @@ export interface AgentSpeakingPayload {
 
 export interface AgentCompletePayload {
   summary: string
+}
+
+export interface AgentAwaitingInputPayload {
+  prompt: string
+  phase?: string
 }
 
 // Research data events

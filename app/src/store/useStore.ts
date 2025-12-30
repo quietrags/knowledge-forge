@@ -26,6 +26,8 @@ import type {
   GroundingConcept,
   Narrative,
   Source,
+  ConversationMessage,
+  ConversationRole,
 } from '../types'
 import type { StreamState } from '../api/streaming'
 
@@ -68,6 +70,9 @@ interface ForgeState {
   error: string | null
   agentThinking: string | null
   streamingText: string
+  conversationMessages: ConversationMessage[]
+  awaitingInput: boolean
+  inputPrompt: string | null
 
   // Journey intake actions
   setJourneyBrief: (brief: JourneyDesignBrief) => void
@@ -121,6 +126,10 @@ interface ForgeState {
   setAgentThinking: (message: string | null) => void
   appendStreamingText: (delta: string) => void
   clearStreamingText: () => void
+  addConversationMessage: (role: ConversationRole, content: string) => void
+  clearConversation: () => void
+  finalizeAgentMessage: () => void
+  setAwaitingInput: (awaiting: boolean, prompt?: string | null) => void
 
   // SSE event handlers (called from streaming handlers)
   handleQuestionAdded: (question: Question, categoryId: string) => void
@@ -195,6 +204,9 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
   error: null,
   agentThinking: null,
   streamingText: '',
+  conversationMessages: [],
+  awaitingInput: false,
+  inputPrompt: null,
 
   // Journey intake actions
   setJourneyBrief: (brief) => {
@@ -214,15 +226,45 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
       journeyState: 'active',
       mode,
       activeTab: 0,
+      // Clear streaming text for new journey
+      streamingText: '',
     })
     get().updateCSSVariables(mode)
 
-    // Initialize build journey if entering build mode
+    // Initialize mode-specific data based on selected mode
+    // This is required for SSE handlers to work (they check for null)
     if (mode === 'build') {
       set({
         buildJourney: {
           phase: 'grounding',
           grounding: { concepts: [], ready: false },
+        },
+        buildData: {
+          narrative: { prior: '', delta: '', full: '' },
+          constructs: [],
+          decisions: [],
+          capabilities: [],
+        },
+      })
+    } else if (mode === 'understand') {
+      set({
+        understandData: {
+          essay: { prior: '', delta: '', full: '' },
+          assumptions: [],
+          concepts: [],
+          models: [],
+        },
+      })
+    } else if (mode === 'research') {
+      set({
+        researchData: {
+          topic: journeyBrief.originalQuestion,
+          meta: '',
+          essay: { prior: '', delta: '', full: '' },
+          categories: [],
+          questions: [],
+          keyInsights: [],
+          adjacentQuestions: [],
         },
       })
     }
@@ -233,6 +275,11 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
       journeyState: 'intake',
       journeyBrief: null,
       buildJourney: null,
+      // Clear all mode data
+      buildData: null,
+      understandData: null,
+      researchData: null,
+      streamingText: '',
     })
   },
 
@@ -604,6 +651,39 @@ export const useForgeStore = create<ForgeState>((set, get) => ({
   appendStreamingText: (delta) => set((state) => ({ streamingText: state.streamingText + delta })),
   clearStreamingText: () => set({ streamingText: '' }),
 
+  // Conversation management
+  addConversationMessage: (role, content) => set((state) => ({
+    conversationMessages: [
+      ...state.conversationMessages,
+      {
+        id: generateId(),
+        role,
+        content,
+        timestamp: Date.now(),
+      },
+    ],
+  })),
+  clearConversation: () => set({ conversationMessages: [], streamingText: '' }),
+  finalizeAgentMessage: () => {
+    // Move current streamingText into conversation history as a tutor message
+    const { streamingText } = get()
+    if (streamingText.trim()) {
+      set((state) => ({
+        conversationMessages: [
+          ...state.conversationMessages,
+          {
+            id: generateId(),
+            role: 'tutor' as ConversationRole,
+            content: streamingText,
+            timestamp: Date.now(),
+          },
+        ],
+        streamingText: '', // Clear after saving
+      }))
+    }
+  },
+  setAwaitingInput: (awaiting, prompt = null) => set({ awaitingInput: awaiting, inputPrompt: prompt }),
+
   // ============================================================================
   // SSE Event Handlers
   // ============================================================================
@@ -869,6 +949,9 @@ export const useIsLoading = () => useForgeStore((state) => state.isLoading)
 export const useApiError = () => useForgeStore((state) => state.error)
 export const useAgentThinking = () => useForgeStore((state) => state.agentThinking)
 export const useStreamingText = () => useForgeStore((state) => state.streamingText)
+export const useConversationMessages = () => useForgeStore((state) => state.conversationMessages)
+export const useAwaitingInput = () => useForgeStore((state) => state.awaitingInput)
+export const useInputPrompt = () => useForgeStore((state) => state.inputPrompt)
 
 // Action hooks - use useShallow to prevent infinite re-renders
 export const useForgeActions = () =>
@@ -916,6 +999,11 @@ export const useForgeActions = () =>
       setAgentThinking: state.setAgentThinking,
       appendStreamingText: state.appendStreamingText,
       clearStreamingText: state.clearStreamingText,
+      // Conversation actions
+      addConversationMessage: state.addConversationMessage,
+      clearConversation: state.clearConversation,
+      finalizeAgentMessage: state.finalizeAgentMessage,
+      setAwaitingInput: state.setAwaitingInput,
     }))
   )
 

@@ -27,3 +27,4 @@ export { ModelTab } from './ModelTab/ModelTab'
 // Shared Components
 export { ChatInput } from './ChatInput/ChatInput'
 export { InlineAdd } from './InlineAdd/InlineAdd'
+export { ConversationPanel } from './ConversationPanel/ConversationPanel'

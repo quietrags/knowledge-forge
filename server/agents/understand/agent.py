@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import AsyncGenerator, Optional, Callable, Any, Awaitable
 import uuid
+import logging
 
 from claude_agent_sdk import (
     ClaudeSDKClient,
@@ -21,6 +22,15 @@ from claude_agent_sdk import (
     ResultMessage,
     tool,
     create_sdk_mcp_server,
+)
+
+from server.agents.logging import (
+    get_agent_logger,
+    log_prompt,
+    log_llm_response,
+    log_tool_result,
+    log_phase_transition,
+    log_error,
 )
 
 from server.persistence import (
@@ -48,6 +58,7 @@ from .prompts import (
     CONFIGURE_PROMPT,
     CLASSIFY_INITIAL_PROMPT,
     CALIBRATE_INITIAL_PROMPT,
+    CALIBRATE_RESUME_PROMPT,
     CALIBRATE_REENTRY_PROMPT,
     DIAGNOSE_INITIAL_PROMPT,
     DIAGNOSE_REENTRY_PROMPT,
@@ -107,10 +118,15 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
     ):
         super().__init__(session, emit_event, checkpoint_handler)
         self._mcp_server = None
+        self._logger: Optional[logging.Logger] = None
 
     async def initialize(self, journey_brief: JourneyDesignBrief) -> None:
         """Initialize the agent for a new understanding journey."""
         await super().initialize(journey_brief)
+
+        # Initialize logging
+        self._logger = get_agent_logger(self.session.id, "understand")
+        self._logger.info(f"Initialized understand agent for: {journey_brief.original_question}")
 
         # Initialize mode data if not present
         if self.session.understand_data is None:
@@ -213,24 +229,52 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         @tool(
             "emit_slo",
-            "Add a Single Learning Objective to the list",
+            "Add a Single Learning Objective to the list. For in_scope and out_of_scope, provide a newline-separated string of bullet points.",
             {
                 "statement": str,
                 "frame": str,
-                "in_scope": list,
-                "out_of_scope": list,
+                "in_scope": str,  # Newline-separated bullet points
+                "out_of_scope": str,  # Newline-separated bullet points
                 "sample_transfer_check": str,
                 "estimated_rounds": int,
             }
         )
         async def emit_slo(args: dict[str, Any]) -> dict[str, Any]:
             """Add an SLO to the list."""
+            # Parse string inputs into lists (handle various formats)
+            def parse_list_string(s: Any) -> list[str]:
+                if isinstance(s, list):
+                    return s
+                if not isinstance(s, str):
+                    return []
+                # Handle markdown bullets, JSON arrays, or plain newlines
+                import json
+                import re
+                s = s.strip()
+                # Try JSON array first
+                if s.startswith('['):
+                    try:
+                        return json.loads(s)
+                    except:
+                        pass
+                # Split by newlines and clean up bullets
+                lines = re.split(r'\n|\\n', s)
+                result = []
+                for line in lines:
+                    line = re.sub(r'^[\s\-\*•]+', '', line).strip()
+                    if line:
+                        result.append(line)
+                return result
+
+            in_scope = parse_list_string(args.get("in_scope", ""))
+            out_of_scope = parse_list_string(args.get("out_of_scope", ""))
+
             slo = SLO(
                 id=str(uuid.uuid4()),
                 statement=args["statement"],
                 frame=args["frame"],
-                in_scope=args.get("in_scope", []),
-                out_of_scope=args.get("out_of_scope", []),
+                in_scope=in_scope,
+                out_of_scope=out_of_scope,
                 sample_transfer_check=args.get("sample_transfer_check", ""),
                 estimated_rounds=args.get("estimated_rounds", 4),
             )
@@ -245,20 +289,29 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         @tool(
             "mark_slos_selected",
-            "Mark which SLOs the learner has selected",
-            {"selected_slo_ids": list}
+            "Mark which SLOs the learner has selected. Pass 'all' to select all SLOs, or a comma-separated list of SLO IDs.",
+            {"selected_slo_ids": str}  # "all" or comma-separated IDs
         )
         async def mark_slos_selected(args: dict[str, Any]) -> dict[str, Any]:
             """Record selected SLOs."""
-            agent.phase_context.selected_slo_ids = args["selected_slo_ids"]
+            # Parse the input - handle "all" or comma-separated IDs
+            raw = args.get("selected_slo_ids", "all")
+            if isinstance(raw, list):
+                selected_ids = raw
+            elif raw.lower().strip() == "all":
+                selected_ids = [s.id for s in agent.phase_context.slos]
+            else:
+                selected_ids = [s.strip() for s in raw.split(",") if s.strip()]
+
+            agent.phase_context.selected_slo_ids = selected_ids
             agent.phase_context.slos_confirmed = True
 
             agent.emitter.emit_sync(SSEEvent(
                 type="data.slos_selected",
-                payload={"selectedSloIds": args["selected_slo_ids"]},
+                payload={"selectedSloIds": selected_ids},
             ))
 
-            return {"content": [{"type": "text", "text": f"{len(args['selected_slo_ids'])} SLOs selected"}]}
+            return {"content": [{"type": "text", "text": f"{len(selected_ids)} SLOs selected"}]}
 
         # =================================================================
         # Stage 2: Triple Calibration Tools
@@ -291,8 +344,41 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             return {"content": [{"type": "text", "text": f"Facet {args['facet']} updated to {args['status']}"}]}
 
         @tool(
+            "record_probe_result",
+            "Record the result of a calibration probe. Call this after evaluating each probe response. probe_type must be 'feynman', 'minimal_example', or 'boundary'. result should be 'strong', 'partial', or 'weak'.",
+            {"probe_type": str, "result": str, "reasoning": str}
+        )
+        async def record_probe_result(args: dict[str, Any]) -> dict[str, Any]:
+            """Record calibration probe result for state tracking."""
+            probe_type = args["probe_type"]
+            result = args["result"]
+            reasoning = args.get("reasoning", "")
+
+            # Record the probe result
+            agent.phase_context.record_probe_result(probe_type, result)
+
+            slo = agent.phase_context.get_current_slo()
+            remaining = agent.phase_context.get_remaining_probes()
+
+            agent.emitter.emit_sync(SSEEvent(
+                type="data.probe_result",
+                payload={
+                    "sloId": slo.id if slo else None,
+                    "probeType": probe_type,
+                    "result": result,
+                    "reasoning": reasoning,
+                    "remainingProbes": remaining,
+                },
+            ))
+
+            if len(remaining) == 0:
+                return {"content": [{"type": "text", "text": f"Probe '{probe_type}' recorded as {result}. All 3 probes complete - call mark_calibration_complete to proceed."}]}
+            else:
+                return {"content": [{"type": "text", "text": f"Probe '{probe_type}' recorded as {result}. Remaining probes: {remaining}. Continue with next probe."}]}
+
+        @tool(
             "mark_calibration_complete",
-            "Mark that Triple Calibration is complete for current SLO",
+            "Mark that Triple Calibration is complete for current SLO. Only call after all 3 probes are done.",
             {"summary": str}
         )
         async def mark_calibration_complete(args: dict[str, Any]) -> dict[str, Any]:
@@ -380,11 +466,11 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         @tool(
             "emit_slo_summary",
-            "Emit the completion summary for an SLO",
+            "Emit the completion summary for an SLO. key_breakthroughs should be a newline-separated string.",
             {
                 "starting_state": str,
                 "ending_state": str,
-                "key_breakthroughs": list,
+                "key_breakthroughs": str,  # Newline-separated breakthroughs
                 "rounds": int,
                 "passes": int,
                 "transfer_passes": int,
@@ -392,7 +478,16 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         )
         async def emit_slo_summary(args: dict[str, Any]) -> dict[str, Any]:
             """Emit SLO completion summary."""
+            import re
             slo = agent.phase_context.get_current_slo()
+
+            # Parse key_breakthroughs from string to list
+            raw = args.get("key_breakthroughs", "")
+            if isinstance(raw, list):
+                breakthroughs = raw
+            else:
+                lines = re.split(r'\n|\\n', raw)
+                breakthroughs = [re.sub(r'^[\s\-\*•]+', '', line).strip() for line in lines if line.strip()]
 
             agent.emitter.emit_sync(SSEEvent(
                 type="data.slo_complete",
@@ -401,7 +496,7 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                     "sloStatement": slo.statement if slo else "",
                     "startingState": args["starting_state"],
                     "endingState": args["ending_state"],
-                    "keyBreakthroughs": args["key_breakthroughs"],
+                    "keyBreakthroughs": breakthroughs,
                     "rounds": args["rounds"],
                     "passes": args["passes"],
                     "transferPasses": args["transfer_passes"],
@@ -517,6 +612,7 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 mark_slos_selected,
                 # Stage 2
                 update_facet_status,
+                record_probe_result,
                 mark_calibration_complete,
                 # Stage 3
                 record_diagnostic_result,
@@ -551,6 +647,20 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         prompt = self._get_phase_prompt(phase, visit_count)
         allowed_tools = self._get_allowed_tools(phase)
 
+        # For interactive phases, include the user's response in the prompt
+        # (Don't include the original question on the first call)
+        is_user_response = message and message != self.journey_brief.original_question
+        if is_user_response and phase in [
+            UnderstandPhase.CALIBRATE,
+            UnderstandPhase.DIAGNOSE,
+        ]:
+            prompt += f"\n\n**Learner's Response:** {message}\n\nEvaluate this response and continue with the appropriate next step."
+
+        # Log phase execution start
+        if self._logger:
+            log_prompt(self._logger, phase.value, prompt)
+            self._logger.debug(f"Allowed tools: {allowed_tools}")
+
         # Build SDK options
         options = ClaudeAgentOptions(
             system_prompt=SYSTEM_PROMPT,
@@ -559,22 +669,44 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         )
 
         # Run the agent
-        async with ClaudeSDKClient(options=options) as client:
-            await client.query(prompt)
+        msg_count = 0
+        try:
+            async with ClaudeSDKClient(options=options) as client:
+                await client.query(prompt)
 
-            async for msg in client.receive_response():
-                if isinstance(msg, AssistantMessage):
-                    for block in msg.content:
-                        if isinstance(block, TextBlock):
-                            # Stream text to frontend
-                            yield agent_speaking(block.text)
-                        elif isinstance(block, ToolUseBlock):
-                            # Tool calls are handled by the SDK
-                            pass
+                async for msg in client.receive_response():
+                    msg_count += 1
 
-                elif isinstance(msg, ResultMessage):
-                    # Phase complete
-                    break
+                    if isinstance(msg, AssistantMessage):
+                        # Log the LLM response
+                        if self._logger:
+                            log_llm_response(self._logger, msg, msg_count)
+
+                        for block in msg.content:
+                            if isinstance(block, TextBlock):
+                                # Stream text to frontend
+                                yield agent_speaking(block.text)
+                            elif isinstance(block, ToolUseBlock):
+                                # Log tool call
+                                if self._logger:
+                                    self._logger.debug(f"TOOL CALL: {block.name}")
+                                    if hasattr(block, 'input'):
+                                        import json
+                                        try:
+                                            self._logger.debug(f"  Input: {json.dumps(block.input, indent=2)[:500]}")
+                                        except:
+                                            self._logger.debug(f"  Input: {block.input}")
+
+                    elif isinstance(msg, ResultMessage):
+                        # Log phase completion
+                        if self._logger:
+                            self._logger.info(f"Phase {phase.value} complete after {msg_count} messages")
+                        break
+
+        except Exception as e:
+            if self._logger:
+                log_error(self._logger, e, f"during phase {phase.value}")
+            raise
 
         # Handle checkpoints if needed
         await self._handle_phase_checkpoint(phase)
@@ -654,6 +786,7 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
             ],
             UnderstandPhase.CALIBRATE: [
                 "mcp__understand__update_facet_status",
+                "mcp__understand__record_probe_result",
                 "mcp__understand__mark_calibration_complete",
             ],
             UnderstandPhase.DIAGNOSE: [
@@ -697,13 +830,29 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         elif phase == UnderstandPhase.CALIBRATE:
             slo = self.phase_context.get_current_slo()
-            if visit_count <= 1:
+            probe_results = self.phase_context.get_current_probe_results()
+            remaining = self.phase_context.get_remaining_probes()
+
+            # Check if we're resuming mid-calibration (some probes done, some remaining)
+            if probe_results and remaining:
+                # Format probe progress for display
+                probe_progress = "\n".join([
+                    f"- {probe}: {result}" for probe, result in probe_results.items()
+                ])
+                return CALIBRATE_RESUME_PROMPT.format(
+                    slo_statement=slo.statement if slo else "",
+                    slo_frame=slo.frame if slo else "",
+                    probe_progress=probe_progress if probe_progress else "(none yet)",
+                    remaining_probes=", ".join(remaining),
+                )
+            elif visit_count <= 1:
+                # First time entering calibration for this SLO
                 return CALIBRATE_INITIAL_PROMPT.format(
                     slo_statement=slo.statement if slo else "",
                     slo_frame=slo.frame if slo else "",
                 )
             else:
-                # Re-entry means new SLO
+                # Re-entry means new SLO (previous SLO completed)
                 prev_slo_id = self.phase_context.completed_slo_ids[-1] if self.phase_context.completed_slo_ids else None
                 prev_slo = next((s for s in self.phase_context.slos if s.id == prev_slo_id), None)
                 return CALIBRATE_REENTRY_PROMPT.format(
@@ -860,3 +1009,6 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         await super().restore_state(state)
         # Recreate MCP server for restored agent
         self._mcp_server = self._create_mcp_server()
+        # Reinitialize logger for restored agent
+        self._logger = get_agent_logger(self.session.id, self.agent_type)
+        self._logger.info(f"Agent restored from state: phase={self.current_phase}")

@@ -12,7 +12,7 @@ const MODE_PLACEHOLDERS = {
 export function ChatInput() {
   const mode = useMode()
   const sessionId = useSessionId()
-  const { setAgentThinking, setError } = useForgeActions()
+  const { setAgentThinking, setError, addConversationMessage, finalizeAgentMessage, setAwaitingInput } = useForgeActions()
   const { send, isSending, error: chatError } = useChat(sessionId)
   const [value, setValue] = useState('')
 
@@ -24,6 +24,15 @@ export function ChatInput() {
       const message = value.trim()
       setValue('')
 
+      // Finalize any current agent message before adding user message
+      finalizeAgentMessage()
+
+      // Add user message to conversation history
+      addConversationMessage('user', message)
+
+      // Clear awaiting input state - we're responding
+      setAwaitingInput(false, null)
+
       // Set thinking state immediately for UI feedback
       setAgentThinking('Sending message...')
 
@@ -34,7 +43,7 @@ export function ChatInput() {
       }
       // On success, SSE stream will handle updating agentThinking
     },
-    [value, isSending, send, setAgentThinking, setError, chatError]
+    [value, isSending, send, setAgentThinking, setError, chatError, addConversationMessage, finalizeAgentMessage, setAwaitingInput]
   )
 
   const handleKeyDown = useCallback(

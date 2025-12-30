@@ -129,6 +129,10 @@ class UnderstandPhaseContext(BasePhaseContext):
     current_slo_index: int = 0
     current_slo_calibrated: bool = False
 
+    # Calibration probe tracking (per SLO, keyed by slo_id)
+    # Each entry is a dict with: {"feynman": "strong/partial/weak", "minimal_example": ..., "boundary": ...}
+    calibration_probe_results: dict[str, dict[str, str]] = field(default_factory=dict)
+
     # Per-SLO mastery counters (keyed by slo_id)
     slo_counters: dict[str, dict] = field(default_factory=dict)
 
@@ -183,6 +187,31 @@ class UnderstandPhaseContext(BasePhaseContext):
         if slo:
             return self.slo_counters.get(slo.id)
         return None
+
+    def get_current_probe_results(self) -> dict[str, str]:
+        """Get calibration probe results for current SLO."""
+        slo = self.get_current_slo()
+        if slo:
+            return self.calibration_probe_results.get(slo.id, {})
+        return {}
+
+    def record_probe_result(self, probe_type: str, result: str) -> None:
+        """Record a calibration probe result for current SLO."""
+        slo = self.get_current_slo()
+        if slo:
+            if slo.id not in self.calibration_probe_results:
+                self.calibration_probe_results[slo.id] = {}
+            self.calibration_probe_results[slo.id][probe_type] = result
+
+    def get_remaining_probes(self) -> list[str]:
+        """Get list of probes not yet completed for current SLO."""
+        all_probes = ["feynman", "minimal_example", "boundary"]
+        completed = set(self.get_current_probe_results().keys())
+        return [p for p in all_probes if p not in completed]
+
+    def is_calibration_probes_complete(self) -> bool:
+        """Check if all calibration probes are done for current SLO."""
+        return len(self.get_remaining_probes()) == 0
 
     def get_current_knowledge_state(self) -> Optional[dict[str, KnowledgeStateFacet]]:
         """Get knowledge state for current SLO."""
@@ -314,6 +343,7 @@ class UnderstandPhaseContext(BasePhaseContext):
             # Stage 2-4
             "current_slo_index": self.current_slo_index,
             "current_slo_calibrated": self.current_slo_calibrated,
+            "calibration_probe_results": self.calibration_probe_results,
             "slo_counters": self.slo_counters,
             "knowledge_states": {
                 slo_id: {
@@ -350,6 +380,7 @@ class UnderstandPhaseContext(BasePhaseContext):
         # Stage 2-4
         ctx.current_slo_index = data.get("current_slo_index", 0)
         ctx.current_slo_calibrated = data.get("current_slo_calibrated", False)
+        ctx.calibration_probe_results = data.get("calibration_probe_results", {})
         ctx.slo_counters = data.get("slo_counters", {})
         ctx.knowledge_states = {
             slo_id: {

@@ -176,8 +176,40 @@ Evaluation Rubric:
 - WEAK: Wrong answer, or right answer with wrong reasoning
 - MISSING: Cannot distinguish between options
 
-After each probe, use update_facet_status to record the result.
-After all three probes, use mark_calibration_complete."""
+After each probe:
+1. Evaluate the learner's response using the rubric
+2. Call record_probe_result with probe_type ('feynman', 'minimal_example', or 'boundary'), result ('strong', 'partial', 'weak', or 'missing'), and your reasoning
+3. Update facet status with update_facet_status (vocabulary for feynman, practical_grasp for minimal_example, boundary_conditions for boundary)
+4. Proceed to the next probe
+
+After all three probes are done, use mark_calibration_complete to proceed to the Diagnostic phase.
+
+IMPORTANT: If the learner's response is included below, it is the answer to the probe you just asked. Evaluate it before continuing."""
+
+
+CALIBRATE_RESUME_PROMPT = """Continuing Triple Calibration for the current SLO.
+
+Current SLO: {slo_statement}
+Frame: {slo_frame}
+
+**Probe Progress (already completed):**
+{probe_progress}
+
+**Remaining probes:** {remaining_probes}
+
+Continue with the next remaining probe. The probe descriptions are:
+- feynman: "Explain [SLO topic] to a smart 12-year-old in 2-3 sentences using simple words"
+- minimal_example: "Give me the smallest, simplest concrete example where [topic] applies"
+- boundary: Three claims question (one correct, two misconceptions)
+
+After each probe:
+1. Evaluate using the rubric (STRONG/PARTIAL/WEAK/MISSING)
+2. Call record_probe_result with probe_type, result, and reasoning
+3. Update facet status with update_facet_status
+4. If more probes remain, ask the next one
+5. When all probes done, call mark_calibration_complete
+
+IMPORTANT: If the learner's response is included below, it is the answer to the most recently asked probe. Evaluate it, record the result, then proceed."""
 
 
 CALIBRATE_REENTRY_PROMPT = """Resuming Triple Calibration for the next SLO.

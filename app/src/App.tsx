@@ -8,7 +8,6 @@ import {
   useJourneyState,
   useBuildJourney,
   useSessionId,
-  useAgentThinking,
   useStreamHandlers,
 } from './store/useStore'
 import { useStream } from './api/hooks'
@@ -16,7 +15,6 @@ import type { StreamHandlers } from './api/streaming'
 import {
   Header,
   PathBar,
-  CodePanel,
   CanvasPanel,
   QuestionTree,
   KeyInsightsTab,
@@ -32,6 +30,7 @@ import {
   JourneyIntake,
   RoutingConfirmation,
   GroundingPanel,
+  ConversationPanel,
 } from './components'
 import { MODE_TABS } from './types'
 import {
@@ -47,12 +46,15 @@ function App() {
   const journeyState = useJourneyState()
   const buildJourney = useBuildJourney()
   const sessionId = useSessionId()
-  const agentThinking = useAgentThinking()
   const {
     setActiveTab,
     setAgentThinking,
     setStreamState,
     setError,
+    appendStreamingText,
+    clearStreamingText,
+    finalizeAgentMessage,
+    setAwaitingInput,
   } = useForgeActions()
 
   // SSE event handlers (separate hook to keep useForgeActions smaller)
@@ -94,15 +96,29 @@ function App() {
       // Agent activity
       onAgentThinking: (payload) => {
         console.log('[SSE] Agent thinking:', payload.message)
+        // Finalize previous message before starting new one
+        finalizeAgentMessage()
         setAgentThinking(payload.message)
       },
       onAgentSpeaking: (payload) => {
         console.log('[SSE] Agent speaking:', payload.delta?.substring(0, 50) + '...')
-        // Speaking events contain the response - could update narrative or display
+        if (payload.delta) {
+          appendStreamingText(payload.delta)
+        }
       },
       onAgentComplete: () => {
         console.log('[SSE] Agent complete')
+        // Finalize the current message to conversation history
+        finalizeAgentMessage()
         setAgentThinking(null)
+        setAwaitingInput(false, null)
+      },
+      onAgentAwaitingInput: (payload) => {
+        console.log('[SSE] Agent awaiting input:', payload.prompt)
+        // Finalize current message and show input prompt
+        finalizeAgentMessage()
+        setAgentThinking(null)
+        setAwaitingInput(true, payload.prompt)
       },
 
       // Narrative updates
@@ -186,6 +202,9 @@ function App() {
       setStreamState,
       setAgentThinking,
       setError,
+      appendStreamingText,
+      clearStreamingText,
+      setAwaitingInput,
       handleNarrativeUpdated,
       handleQuestionAdded,
       handleQuestionAnswered,
@@ -329,17 +348,9 @@ function App() {
           <div className="content-body">{renderContent()}</div>
         </div>
 
-        <CodePanel />
+        <ConversationPanel />
         <CanvasPanel />
       </main>
-
-      {/* Agent thinking indicator */}
-      {agentThinking && (
-        <div className="agent-thinking">
-          <span className="thinking-dot"></span>
-          <span className="thinking-text">{agentThinking}</span>
-        </div>
-      )}
 
       <ChatInput />
     </div>
