@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useJourneyBrief, useForgeActions } from '../../store/useStore'
+import { useJourneyConfirm } from '../../api/hooks'
 import type { Mode } from '../../types'
 import styles from './RoutingConfirmation.module.css'
 
@@ -28,7 +30,9 @@ const ALTERNATIVE_MODES: Record<Mode, Mode[]> = {
 
 export const RoutingConfirmation = () => {
   const journeyBrief = useJourneyBrief()
-  const { confirmJourney, setJourneyBrief, resetJourney } = useForgeActions()
+  const { confirmJourney, setJourneyBrief, resetJourney, setSessionId, setIsLoading, setError } = useForgeActions()
+  const { confirm, error } = useJourneyConfirm()
+  const [isConfirming, setIsConfirming] = useState(false)
 
   if (!journeyBrief) return null
 
@@ -36,16 +40,36 @@ export const RoutingConfirmation = () => {
   const modeInfo = MODE_INFO[primaryMode]
   const alternatives = ALTERNATIVE_MODES[primaryMode]
 
-  const handleConfirm = () => {
-    confirmJourney()
+  const handleConfirm = async () => {
+    if (isConfirming) return
+    setIsConfirming(true)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const session = await confirm(journeyBrief, true)
+      if (session) {
+        // Store the session ID for later API calls
+        setSessionId(session.sessionId)
+        // Now trigger the local state transition
+        confirmJourney()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start session')
+    } finally {
+      setIsConfirming(false)
+      setIsLoading(false)
+    }
   }
 
-  const handleAlternative = (mode: Mode) => {
-    setJourneyBrief({
+  const handleAlternative = async (mode: Mode) => {
+    // Update brief with new mode, then confirm with that mode
+    const updatedBrief = {
       ...journeyBrief,
       primaryMode: mode,
       confirmationMessage: MODE_INFO[mode].description,
-    })
+    }
+    setJourneyBrief(updatedBrief)
   }
 
   const handleBack = () => {
@@ -98,9 +122,14 @@ export const RoutingConfirmation = () => {
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.primaryButton} onClick={handleConfirm}>
-            Yes, let's {primaryMode} →
+          <button
+            className={styles.primaryButton}
+            onClick={handleConfirm}
+            disabled={isConfirming}
+          >
+            {isConfirming ? 'Starting session...' : `Yes, let's ${primaryMode} →`}
           </button>
+          {error && <p className={styles.error}>{error.message || 'Failed to start session'}</p>}
         </div>
 
         <div className={styles.alternatives}>

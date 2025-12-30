@@ -1,19 +1,30 @@
 import { useState } from 'react'
 import { useForgeActions } from '../../store/useStore'
+import { useJourneyAnalysis } from '../../api/hooks'
 import styles from './JourneyIntake.module.css'
 
 export const JourneyIntake = () => {
   const [question, setQuestion] = useState('')
-  const { setJourneyBrief } = useForgeActions()
+  const { setJourneyBrief, setIsLoading, setError } = useForgeActions()
+  const { analyze, isLoading, error } = useJourneyAnalysis()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!question.trim()) return
+    if (!question.trim() || isLoading) return
 
-    // For now, use simple heuristics to route the question
-    // In production, this would call an LLM to analyze the question
-    const brief = analyzeQuestion(question.trim())
-    setJourneyBrief(brief)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const brief = await analyze(question.trim())
+      if (brief) {
+        setJourneyBrief(brief)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to analyze question')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -33,10 +44,11 @@ export const JourneyIntake = () => {
           <button
             type="submit"
             className={styles.button}
-            disabled={!question.trim()}
+            disabled={!question.trim() || isLoading}
           >
-            Begin Journey →
+            {isLoading ? 'Analyzing...' : 'Begin Journey →'}
           </button>
+          {error && <p className={styles.error}>{error.message || 'Analysis failed'}</p>}
         </form>
 
         <div className={styles.examples}>
@@ -56,56 +68,4 @@ export const JourneyIntake = () => {
       </div>
     </div>
   )
-}
-
-// Simple heuristic-based question routing
-// In production, this would be replaced with LLM analysis
-function analyzeQuestion(question: string) {
-  const lowerQ = question.toLowerCase()
-
-  // Build signals
-  if (
-    lowerQ.startsWith('how do i') ||
-    lowerQ.startsWith('help me') ||
-    lowerQ.startsWith('i want to') ||
-    lowerQ.includes('create') ||
-    lowerQ.includes('build') ||
-    lowerQ.includes('implement') ||
-    lowerQ.includes('make a')
-  ) {
-    return {
-      originalQuestion: question,
-      idealAnswer: 'Techniques and constructs you can apply immediately',
-      answerType: 'skill' as const,
-      primaryMode: 'build' as const,
-      confirmationMessage: `It sounds like you want to BUILD—learn techniques you can apply immediately.`,
-    }
-  }
-
-  // Understand signals
-  if (
-    lowerQ.startsWith('why') ||
-    lowerQ.startsWith('what is the difference') ||
-    lowerQ.includes('understand') ||
-    lowerQ.includes('explain') ||
-    lowerQ.includes('how does') ||
-    lowerQ.includes('concept')
-  ) {
-    return {
-      originalQuestion: question,
-      idealAnswer: 'A mental model that clarifies how things work',
-      answerType: 'understanding' as const,
-      primaryMode: 'understand' as const,
-      confirmationMessage: `It sounds like you want to UNDERSTAND—develop a mental model of how this works.`,
-    }
-  }
-
-  // Default to Research
-  return {
-    originalQuestion: question,
-    idealAnswer: 'Answers to your questions with sources and key insights',
-    answerType: 'facts' as const,
-    primaryMode: 'research' as const,
-    confirmationMessage: `This looks like a RESEARCH question—you want to survey what exists and understand the landscape.`,
-  }
 }

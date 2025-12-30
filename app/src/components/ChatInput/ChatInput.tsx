@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { useMode } from '../../store/useStore'
+import { useMode, useSessionId, useForgeActions } from '../../store/useStore'
+import { useChat } from '../../api/hooks'
 import styles from './ChatInput.module.css'
 
 const MODE_PLACEHOLDERS = {
@@ -10,18 +11,30 @@ const MODE_PLACEHOLDERS = {
 
 export function ChatInput() {
   const mode = useMode()
+  const sessionId = useSessionId()
+  const { setAgentThinking, setError } = useForgeActions()
+  const { send, isSending, error: chatError } = useChat(sessionId)
   const [value, setValue] = useState('')
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault()
-      if (!value.trim()) return
+      if (!value.trim() || isSending) return
 
-      // TODO: Implement actual submission logic
-      console.log('Submit:', value)
+      const message = value.trim()
       setValue('')
+
+      // Set thinking state immediately for UI feedback
+      setAgentThinking('Sending message...')
+
+      const success = await send(message)
+      if (!success) {
+        setError(chatError?.message || 'Failed to send message')
+        setAgentThinking(null)
+      }
+      // On success, SSE stream will handle updating agentThinking
     },
-    [value]
+    [value, isSending, send, setAgentThinking, setError, chatError]
   )
 
   const handleKeyDown = useCallback(
@@ -34,18 +47,35 @@ export function ChatInput() {
     [handleSubmit]
   )
 
+  // Don't render if no session yet
+  if (!sessionId) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.inner}>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Start a journey to begin chatting..."
+            disabled
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.container}>
       <form className={styles.inner} onSubmit={handleSubmit}>
         <input
           type="text"
           className={styles.input}
-          placeholder={MODE_PLACEHOLDERS[mode]}
+          placeholder={isSending ? 'Sending...' : MODE_PLACEHOLDERS[mode]}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={isSending}
         />
-        <span className={styles.hint}>↵</span>
+        <span className={styles.hint}>{isSending ? '...' : '↵'}</span>
       </form>
     </div>
   )

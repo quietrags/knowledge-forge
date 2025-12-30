@@ -248,6 +248,11 @@ export function createJourneyStream(
 
     eventSource.addEventListener(eventType, (event: MessageEvent) => {
       try {
+        // Skip if no data (can happen with browser-level error events)
+        if (!event.data) {
+          console.warn(`SSE event "${eventType}" received with no data`)
+          return
+        }
         // Parse the full event: {type, timestamp, payload}
         const eventData = JSON.parse(event.data)
         // Extract just the payload for handlers

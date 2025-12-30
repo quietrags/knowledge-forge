@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from server.persistence import (
     SessionStore,
@@ -59,9 +59,11 @@ class JourneyConfirmRequest(BaseModel):
 
 class SessionInitResponse(BaseModel):
     """Response with initialized session."""
-    session_id: str
+    session_id: str = Field(alias="sessionId", serialization_alias="sessionId")
     mode: Mode
     # Note: initial_data would be Union type but keeping simple for now
+
+    model_config = {"populate_by_name": True}
 
 
 # =============================================================================

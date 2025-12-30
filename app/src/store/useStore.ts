@@ -169,7 +169,7 @@ const initialPath: PathData = {
 
 export const useForgeStore = create<ForgeState>((set, get) => ({
   // Initial state - journey intake
-  journeyState: 'active', // Start as 'active' for dev; change to 'intake' for prod
+  journeyState: 'intake', // Start as 'intake' for E2E test
   journeyBrief: null,
 
   // Initial state - core
