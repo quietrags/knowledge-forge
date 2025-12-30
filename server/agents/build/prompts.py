@@ -277,6 +277,45 @@ Exit when learner:
 Use mark_construction_verified when complete."""
 
 
+CONSTRUCTION_RESUME_PROMPT = """[REACT] Continuing Construction Loop for current SLO.
+
+SLO: {slo_statement}
+Frame: {slo_frame}
+Connected Anchor: {anchor_description}
+Current Scaffold Level: {scaffold_level}
+Mode: {mode}
+
+**Previous Rounds (already completed):**
+{previous_rounds}
+
+The learner has responded to your most recent scaffold. Continue the construction loop:
+
+1. Evaluate the learner's response using the outcome categories:
+   - CONSTRUCTED: Learner built the concept
+   - PARTIAL: Right direction, incomplete
+   - STUCK: Not making progress
+   - SURRENDERED: "I don't know"
+   - UNEXPECTED: Went different direction
+
+2. Call record_construction_round to record this round's outcome
+
+3. Adjust scaffold based on outcome:
+   - CONSTRUCTED → Lighten scaffold, verify if target reached
+   - PARTIAL → Acknowledge what's right, hint at missing part
+   - STUCK → Try different framing, heavier scaffold
+   - SURRENDERED → Execute Surrender Recovery
+   - UNEXPECTED → Assess if valid alternative
+
+4. Deliver the next scaffold OR mark_construction_verified if complete
+
+Exit when learner:
+- Uses concept without scaffold
+- Transfers to novel scenario
+- Can explain to hypothetical other person
+
+IMPORTANT: If the learner's response is included below, evaluate it and continue."""
+
+
 CONSTRUCTION_REENTRY_PROMPT = """[REACT] Continuing Construction Loop.
 
 Reason for return: {backward_trigger}

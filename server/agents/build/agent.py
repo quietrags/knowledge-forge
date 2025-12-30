@@ -51,6 +51,7 @@ from .prompts import (
     CLASSIFY_RESUME_PROMPT,
     SEQUENCE_DESIGN_PROMPT,
     CONSTRUCTION_INITIAL_PROMPT,
+    CONSTRUCTION_RESUME_PROMPT,
     CONSTRUCTION_REENTRY_PROMPT,
     SURRENDER_RECOVERY_PROMPT,
     SLO_COMPLETE_PROMPT,
@@ -883,20 +884,33 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         elif phase == BuildPhase.CONSTRUCTION:
             slo = self.phase_context.get_current_slo()
             anchor = self.phase_context.get_anchor(slo.anchor_id) if slo else None
+            current_rounds = self.phase_context.get_current_rounds()
 
-            if visit_count <= 1:
-                return CONSTRUCTION_INITIAL_PROMPT.format(
+            if visit_count > 1:
+                # Came back via backward transition (e.g., from anchor gap)
+                return CONSTRUCTION_REENTRY_PROMPT.format(
+                    backward_trigger=self.phase_context.backward_trigger or "",
+                    previous_rounds=self._format_rounds(),
+                    slo_statement=slo.statement if slo else "",
+                    scaffold_level=self.phase_context.current_scaffold_level,
+                    mode=self.phase_context.current_mode,
+                )
+            elif current_rounds:
+                # Mid-construction: rounds already recorded, user responded to scaffold
+                return CONSTRUCTION_RESUME_PROMPT.format(
                     slo_statement=slo.statement if slo else "",
                     slo_frame=slo.frame if slo else "",
                     anchor_description=anchor.description if anchor else "",
                     scaffold_level=self.phase_context.current_scaffold_level,
                     mode=self.phase_context.current_mode,
+                    previous_rounds=self._format_rounds(),
                 )
             else:
-                return CONSTRUCTION_REENTRY_PROMPT.format(
-                    backward_trigger=self.phase_context.backward_trigger or "",
-                    previous_rounds=self._format_rounds(),
+                # First time entering construction for this SLO
+                return CONSTRUCTION_INITIAL_PROMPT.format(
                     slo_statement=slo.statement if slo else "",
+                    slo_frame=slo.frame if slo else "",
+                    anchor_description=anchor.description if anchor else "",
                     scaffold_level=self.phase_context.current_scaffold_level,
                     mode=self.phase_context.current_mode,
                 )
