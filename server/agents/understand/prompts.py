@@ -227,15 +227,20 @@ Evaluation Rubric:
 - WEAK: Wrong answer, or right answer with wrong reasoning
 - MISSING: Cannot distinguish between options
 
-After each probe:
-1. Evaluate the learner's response using the rubric
-2. Call record_probe_result with probe_type ('feynman', 'minimal_example', or 'boundary'), result ('strong', 'partial', 'weak', or 'missing'), and your reasoning
-3. Update facet status with update_facet_status (vocabulary for feynman, practical_grasp for minimal_example, boundary_conditions for boundary)
-4. Proceed to the next probe
+**CRITICAL - ONE PROBE PER TURN:**
+1. Ask ONE probe question
+2. Call mark_probe_question_asked with the probe_type
+3. STOP - generate no more text and wait for the learner's response
+
+When the learner's response is included below:
+1. Evaluate their response using the rubric
+2. Call record_probe_result with probe_type, result, and reasoning
+3. Call update_facet_status with the appropriate facet
+4. Then ask the NEXT probe (and call mark_probe_question_asked again, then STOP)
 
 After all three probes are done, use mark_calibration_complete to proceed to the Diagnostic phase.
 
-IMPORTANT: If the learner's response is included below, it is the answer to the probe you just asked. Evaluate it before continuing."""
+IMPORTANT: If the learner's response is included below, evaluate it BEFORE asking the next probe."""
 
 
 CALIBRATE_RESUME_PROMPT = """Continuing Triple Calibration for the current SLO.
@@ -248,19 +253,22 @@ Frame: {slo_frame}
 
 **Remaining probes:** {remaining_probes}
 
-Continue with the next remaining probe. The probe descriptions are:
+The probe descriptions are:
 - feynman: "Explain [SLO topic] to a smart 12-year-old in 2-3 sentences using simple words"
 - minimal_example: "Give me the smallest, simplest concrete example where [topic] applies"
 - boundary: Three claims question (one correct, two misconceptions)
 
-After each probe:
-1. Evaluate using the rubric (STRONG/PARTIAL/WEAK/MISSING)
-2. Call record_probe_result with probe_type, result, and reasoning
-3. Update facet status with update_facet_status
-4. If more probes remain, ask the next one
-5. When all probes done, call mark_calibration_complete
+**CRITICAL - ONE PROBE PER TURN:**
 
-IMPORTANT: If the learner's response is included below, it is the answer to the most recently asked probe. Evaluate it, record the result, then proceed."""
+If the learner's response is included below:
+1. Evaluate their response using the rubric (STRONG/PARTIAL/WEAK/MISSING)
+2. Call record_probe_result with probe_type, result, and reasoning
+3. Call update_facet_status with the appropriate facet
+4. If more probes remain:
+   - Ask the NEXT probe question
+   - Call mark_probe_question_asked
+   - STOP - generate no more text
+5. When all probes done, call mark_calibration_complete"""
 
 
 CALIBRATE_REENTRY_PROMPT = """Resuming Triple Calibration for the next SLO.
@@ -298,35 +306,35 @@ Mastery Criteria (NON-NEGOTIABLE):
 Current Counters:
 {counters}
 
-Each round follows this sequence:
+**CRITICAL - ONE QUESTION PER TURN:**
 
-1. GENERATE DIAGNOSTIC STEP PLAN
+Each diagnostic round follows this pattern:
+
+1. GENERATE DIAGNOSTIC STEP PLAN (internal)
    - Target Facet: [vocabulary | mental_model | practical_grasp | boundary_conditions | transfer]
-   - Rationale: Why this facet now? What gap are we probing?
-   - Diagnostic Question: The exact question to ask
+   - Rationale: Why this facet now?
 
 2. SHARE TRANSPARENCY with learner:
    "I'm probing your **[facet]** here because [rationale]."
    Then ask the diagnostic question.
 
-3. DIAGNOSE the response against rubric
+3. Call mark_diagnostic_question_asked with the facet
 
-4. DELIVER TEACHING MOMENT (generous, not minimal):
-   - Part 1: Reflection (2-3 sentences)
-   - Part 2: Core Explanation (2-3 paragraphs)
-   - Part 3: Multiple Examples (simple → moderate → complex)
-   - Part 4: Visual (mermaid diagram if helpful)
-   - Part 5: Key Insight (1 sentence)
-   - Part 6: Common Traps (optional)
+4. STOP - generate no more text and wait for the learner's response
 
-5. VERIFY with check question (transfer-style)
-
-6. UPDATE counters using record_diagnostic_result
-
-7. Display round status:
+When the learner's response is included below:
+1. DIAGNOSE the response against rubric
+2. Call record_diagnostic_result with facet, result (pass/fail), and is_transfer
+3. DELIVER TEACHING MOMENT (generous):
+   - Reflection (2-3 sentences)
+   - Core Explanation (2-3 paragraphs)
+   - Multiple Examples
+   - Key Insight
+4. Then ask the NEXT diagnostic question (call mark_diagnostic_question_asked, then STOP)
+5. Display round status:
    "Round [N]/7 min | Vocab: [✓✓] | Model: [✓] | Boundary: [✓] | Transfer: [○○]"
 
-Continue until mastery criteria are met, then use mark_mastery_achieved."""
+When mastery criteria are met, use mark_mastery_achieved."""
 
 
 DIAGNOSE_REENTRY_PROMPT = """Returning to the Diagnostic Loop.
@@ -342,7 +350,16 @@ Current Counters:
 {counters}
 
 We're returning because the learner needs more work on this SLO.
-Continue the diagnostic loop, focusing on the gaps identified.
+
+**CRITICAL - ONE QUESTION PER TURN:**
+
+1. Generate a diagnostic question for the weakest facet
+2. Share transparency: "I'm probing your **[facet]** here because [rationale]."
+3. Ask the question
+4. Call mark_diagnostic_question_asked with the facet
+5. STOP - wait for learner's response
+
+When the learner's response is included below, evaluate and teach before asking the next question.
 
 Remember: Exit only when ALL mastery criteria are met:
 - total_rounds >= 7

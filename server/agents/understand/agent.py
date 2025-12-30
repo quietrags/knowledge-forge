@@ -355,6 +355,18 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         # =================================================================
 
         @tool(
+            "mark_probe_question_asked",
+            "Mark that a probe question has been asked to the learner. Call this AFTER presenting a probe question (feynman, minimal_example, or boundary), then STOP and WAIT for the learner's response.",
+            {"probe_type": str}
+        )
+        async def mark_probe_question_asked(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that a probe question was asked - agent should now wait for response."""
+            probe_type = args.get("probe_type", "unknown")
+            agent.phase_context.awaiting_user_input = True
+
+            return {"content": [{"type": "text", "text": f"Probe question ({probe_type}) presented. STOP and wait for the learner's response before evaluating."}]}
+
+        @tool(
             "update_facet_status",
             "Update the knowledge state for a facet after a calibration probe",
             {"facet": str, "status": str, "evidence": str}
@@ -440,6 +452,18 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         # =================================================================
         # Stage 3: Diagnostic Loop Tools
         # =================================================================
+
+        @tool(
+            "mark_diagnostic_question_asked",
+            "Mark that a diagnostic question has been asked to the learner. Call this AFTER presenting a diagnostic question, then STOP and WAIT for the learner's response.",
+            {"facet": str}
+        )
+        async def mark_diagnostic_question_asked(args: dict[str, Any]) -> dict[str, Any]:
+            """Mark that a diagnostic question was asked - agent should now wait for response."""
+            facet = args.get("facet", "unknown")
+            agent.phase_context.awaiting_user_input = True
+
+            return {"content": [{"type": "text", "text": f"Diagnostic question (facet: {facet}) presented. STOP and wait for the learner's response before evaluating."}]}
 
         @tool(
             "record_diagnostic_result",
@@ -651,10 +675,12 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 mark_slos_presented,
                 mark_slos_selected,
                 # Stage 2
+                mark_probe_question_asked,
                 update_facet_status,
                 record_probe_result,
                 mark_calibration_complete,
                 # Stage 3
+                mark_diagnostic_question_asked,
                 record_diagnostic_result,
                 mark_mastery_achieved,
                 # Stage 4
@@ -834,12 +860,14 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
                 "mcp__understand__mark_slos_selected",
             ],
             UnderstandPhase.CALIBRATE: [
+                "mcp__understand__mark_probe_question_asked",
                 "mcp__understand__update_facet_status",
                 "mcp__understand__record_probe_result",
                 "mcp__understand__mark_calibration_complete",
             ],
             UnderstandPhase.DIAGNOSE: [
                 "WebSearch",
+                "mcp__understand__mark_diagnostic_question_asked",
                 "mcp__understand__update_facet_status",
                 "mcp__understand__record_diagnostic_result",
                 "mcp__understand__mark_mastery_achieved",
