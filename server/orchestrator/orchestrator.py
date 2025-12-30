@@ -25,6 +25,7 @@ from server.api.streaming import (
     session_started,
     narrative_updated,
     data_event,
+    error_event,
 )
 from .router import QuestionRouter
 from .journey_designer import JourneyDesigner
@@ -222,32 +223,69 @@ class Orchestrator:
         session: Session,
         message: str,
         context: Optional[dict] = None,
+        emit_event: Optional[Callable[[SSEEvent], Awaitable[None]]] = None,
     ) -> AsyncGenerator[SSEEvent, None]:
         """
         Process a user message in the context of a session.
 
-        This is a stub that will be expanded when agents are implemented.
-        For now, it emits placeholder events.
+        Routes to the appropriate mode agent (Research, Understand, Build)
+        based on session.mode. The agent processes the message through its
+        phase graph and emits SSE events.
+
+        Note: For SSE streaming in API routes, prefer using the agent factory
+        directly via server.agents.get_or_create_agent() as shown in chat.py.
+        This method is provided for non-streaming or testing contexts.
 
         Args:
             session: The active session
             message: User's message
             context: Optional UI context (selected question, active tab, etc.)
+            emit_event: Optional async callback for SSE events (if not provided,
+                        events are only yielded)
 
         Yields:
             SSE events as the agent processes the message
         """
+        # Import here to avoid circular imports
+        from server.agents import get_or_create_agent, save_agent_state
+
+        # Validate journey brief exists
+        if not session.journey_brief:
+            yield error_event(
+                "Session has no journey brief. Please start a new journey first.",
+                code="NO_JOURNEY_BRIEF",
+            )
+            return
+
+        # Create emit wrapper that both yields and optionally calls callback
+        collected_events: list[SSEEvent] = []
+
+        async def collect_event(event: SSEEvent) -> None:
+            collected_events.append(event)
+            if emit_event:
+                await emit_event(event)
+
         # Emit thinking event
-        yield agent_thinking(f"Processing your message...")
+        yield agent_thinking(f"Processing in {session.mode} mode...")
 
-        # TODO: Route to appropriate agent based on session.mode
-        # For now, emit a placeholder response
+        # Get or create the appropriate agent
+        agent = await get_or_create_agent(
+            session=session,
+            journey_brief=session.journey_brief,
+            emit_event=collect_event,
+        )
 
-        yield agent_speaking("I understand your question. ")
-        yield agent_speaking(f"You asked about: {message}. ")
-        yield agent_speaking("Agent integration is coming in Phase 3.")
+        # Process message through agent
+        async for event in agent.process_message(message, context or {}):
+            yield event
 
-        yield agent_complete("Message processed")
+        # Save agent state
+        save_agent_state(session, agent)
+
+        # Save session
+        from datetime import datetime
+        session.updated = datetime.utcnow()
+        self.store.save(session)
 
     # =========================================================================
     # Session Management
