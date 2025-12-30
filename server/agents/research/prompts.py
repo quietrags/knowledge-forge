@@ -51,7 +51,7 @@ Tier 5 (Score 0.6): Community (Stack Overflow 10+ votes, Reddit top posts)
 # DECOMPOSE Phase Prompts
 # =============================================================================
 
-DECOMPOSE_INITIAL_PROMPT = """You are in the DECOMPOSE phase. Your goal is to break down the research topic into a structured question tree.
+DECOMPOSE_INITIAL_PROMPT = """You are in the DECOMPOSE phase. Break down the research topic into a structured question tree.
 
 <topic>
 {topic}
@@ -61,7 +61,8 @@ DECOMPOSE_INITIAL_PROMPT = """You are in the DECOMPOSE phase. Your goal is to br
 {learner_context}
 </context>
 
-<task>
+**INTERNAL PLANNING (do not output):**
+
 1. Expand the topic into three layers:
    - CORE: Essential mechanisms (HIGH question density)
    - ADJACENT: Directly connected context (MEDIUM density)
@@ -75,30 +76,40 @@ DECOMPOSE_INITIAL_PROMPT = """You are in the DECOMPOSE phase. Your goal is to br
    - CODE: Working examples (if technical topic)
    - PITFALL: Common mistakes
 
-3. Organize questions into categories
-
-4. Assign priority:
+3. Organize into 3-5 categories with priorities:
    - HIGH: Must answer (core understanding)
    - MEDIUM: Should answer (if sources available)
    - LOW: Nice to have (if time permits)
-</task>
 
-<output_format>
-For each category, output:
-- Category name
-- Category-level question (what insight should we gain from this category?)
-- List of specific questions with frames and priorities
+**EXECUTION (follow exactly):**
 
-Use the provided tools to emit each category and question as you generate them.
-</output_format>
+1. For each category: call emit_category, then emit_question for each question in it
+2. After ALL categories and questions are emitted, output a summary:
 
-**CRITICAL**: After generating all categories and questions:
-1. Call mark_question_tree_presented to record that you've shown the tree
-2. STOP and WAIT for the user to approve or adjust the question tree
-3. Do NOT call mark_question_tree_approved until the user has actually responded
-4. Do NOT proceed to answering questions until the tree is approved
+---
 
-Present a summary of the question tree and then wait for user approval."""
+**Research Plan for: {topic}**
+
+I've organized this into {N} categories with {M} questions:
+
+**Categories:**
+- [Category 1]: [brief description] ({X} questions)
+- [Category 2]: [brief description] ({Y} questions)
+...
+
+**Priority breakdown:** {H} high, {M} medium, {L} low
+
+Does this look right? You can:
+- **Proceed** — Start researching
+- **Add** — Include additional questions
+- **Remove** — Drop specific questions
+- **Adjust** — Change priorities
+
+---
+
+3. Call mark_question_tree_presented IMMEDIATELY after outputting
+4. STOP generating - do not add any more text after the tool call
+5. Do NOT call mark_question_tree_approved until the user responds"""
 
 
 DECOMPOSE_RESUME_PROMPT = """Continuing with question tree approval.

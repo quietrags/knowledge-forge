@@ -63,45 +63,42 @@ Use these tools to maintain state and emit events to the frontend."""
 
 ANCHOR_DISCOVERY_PROMPT = """[PLAN] Begin Anchor Discovery for: {topic}
 
-Your goal is to find what the learner already knows that can serve as foundations for construction.
-This is NOT assessment—it's resource discovery.
+Output EXACTLY this format (then immediately call mark_anchor_questions_asked):
 
-Step 1: Explore Related Experiences
-Don't ask "what do you know about X?" Instead, ask about experiences that might connect.
+---
 
-Example questions:
-| Topic | Good Anchor Questions |
-|-------|----------------------|
+**Let's find what you already know that we can build on.**
+
+I want to understand your experience—not to test you, but to find the best starting points.
+
+**A few questions:**
+
+1. {anchor_question_1}
+2. {anchor_question_2}
+3. {anchor_question_3}
+
+Just share what comes to mind—even partial experience is useful!
+
+---
+
+**BEFORE OUTPUTTING, generate appropriate anchor questions internally:**
+
+Example mappings:
+| Topic | Good Questions |
+|-------|---------------|
 | ReACT agents | "Have you debugged code with print statements? Talked through a problem out loud?" |
 | Database indexes | "Have you used a book index? Organized files in folders?" |
 | Recursion | "Have you opened nested boxes? Seen mirrors facing each other?" |
 | REST APIs | "Have you filled out a form online? Ordered food at a restaurant with a menu?" |
 
-Use the emit_anchor tool to record each anchor discovered with:
-- description: What the learner knows
-- strength: "strong", "medium", or "weak"
-- evidence: Their specific response that shows this anchor
+Replace {{anchor_question_1}}, {{anchor_question_2}}, {{anchor_question_3}} with topic-appropriate questions.
 
-Step 2: Build Anchor Map
-Categorize anchors as:
-- STRONG ANCHORS (deep experience, can build from)
-- MEDIUM ANCHORS (some experience, usable with care)
-- WEAK ANCHORS (mentioned but uncertain)
-
-Step 3: If No Anchors Found
-Ask more broadly about their background. Look for universal anchors like problem-solving, learning something new before, following instructions.
-
-Step 4: Confirm Anchor Selection
-"So you've got solid experience with [ANCHOR A] and some familiarity with [ANCHOR B].
-I'll use [PRIMARY ANCHOR] as our main building block. Sound good?"
-
-**CRITICAL**: After asking anchor discovery questions:
-1. Call mark_anchor_questions_asked to record that you've asked
-2. STOP and WAIT for the learner's response about their experiences
-3. Do NOT call mark_anchors_confirmed until the learner has actually responded
-4. Do NOT proceed to classification until anchors are confirmed
-
-Present the anchor questions and then wait for the learner's input."""
+**EXECUTION INSTRUCTIONS (follow exactly):**
+1. Generate 3 anchor discovery questions for this specific topic
+2. Output the message above with your questions filled in
+3. Call mark_anchor_questions_asked IMMEDIATELY after outputting
+4. STOP generating - do not add any more text after the tool call
+5. Do NOT call emit_anchor or mark_anchors_confirmed until the learner responds"""
 
 
 ANCHOR_DISCOVERY_RESUME_PROMPT = """Continuing Anchor Discovery.

@@ -67,31 +67,35 @@ Use the emit_knowledge_confidence tool when ready to proceed."""
 # Stage 0.5: Session Configuration
 # =============================================================================
 
-CONFIGURE_PROMPT = """Present the session configuration options to the learner.
+CONFIGURE_PROMPT = """Present session configuration options using EXACTLY this format (no variations):
 
-You should ask about:
+---
 
-1. **Learning Pace**
-   - Standard (default): Full diagnostic loop, generous teaching moments
-   - Thorough: Extra examples, more misconception probes, deeper exploration
-   - Focused: Leaner teaching moments, faster transitions, still 7+ rounds
+**Before we start, let me tailor this session to you.**
 
-2. **Explanation Style**
-   - Balanced (default): Mix of theory, examples, and visuals
-   - Example-heavy: Lead with concrete examples, derive principles from them
-   - Theory-first: Start with principles, then illustrate with examples
-   - Visual: Prioritize diagrams and visual representations
+**1. Learning Pace**
+- **Standard** (default): Full diagnostic loop, generous teaching moments
+- **Thorough**: Extra examples, more misconception probes, deeper exploration
+- **Focused**: Leaner teaching moments, faster transitions, still 7+ rounds
 
-3. **Prior Context** (optional)
-   Examples: "I'm a backend dev learning frontend", "Preparing for an interview"
+**2. Explanation Style**
+- **Balanced** (default): Mix of theory, examples, and visuals
+- **Example-heavy**: Lead with concrete examples, derive principles
+- **Theory-first**: Start with principles, then illustrate
+- **Visual**: Prioritize diagrams and visual representations
 
-**CRITICAL**: After presenting these options:
-1. Call mark_config_questions_asked to record that you've asked
-2. STOP and WAIT for the learner's response
-3. Do NOT call emit_session_config until the learner has actually responded with their preferences
-4. Do NOT proceed to generate SLOs until preferences are confirmed
+**3. Prior Context** (optional)
+Tell me about your background if it's relevant (e.g., "backend dev learning frontend", "preparing for interview")
 
-Present the options clearly and then wait for the learner's input."""
+What are your preferences?
+
+---
+
+**EXECUTION INSTRUCTIONS (follow exactly):**
+1. Output the message above EXACTLY as formatted (no emoji, no variations, no additional text)
+2. Call mark_config_questions_asked IMMEDIATELY after outputting
+3. STOP generating - do not add any more text after the tool call
+4. Do NOT call emit_session_config until the learner responds with preferences"""
 
 
 CONFIGURE_RESUME_PROMPT = """Continuing session configuration.
