@@ -756,6 +756,11 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
     async def _handle_phase_checkpoint(self, phase: UnderstandPhase) -> None:
         """Handle checkpoint after phase execution."""
 
+        # Skip checkpoints when awaiting user input - the user hasn't responded yet
+        # so we shouldn't auto-approve any state changes
+        if self.phase_context.awaiting_user_input:
+            return
+
         if phase == UnderstandPhase.CONFIGURE and not self.phase_context.session_configured:
             checkpoint = Checkpoint(
                 id="configure_approval",
@@ -865,11 +870,14 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
 
         elif phase == UnderstandPhase.CONFIGURE:
             # Check if we're resuming mid-configuration (questions asked, waiting for response)
+            print(f"[DEBUG] _get_phase_prompt CONFIGURE: config_questions_asked={self.phase_context.config_questions_asked}, session_configured={self.phase_context.session_configured}")
             if self.phase_context.config_questions_asked and not self.phase_context.session_configured:
                 # User has responded to config questions - use resume prompt
+                print(f"[DEBUG] Returning CONFIGURE_RESUME_PROMPT")
                 return CONFIGURE_RESUME_PROMPT
             else:
                 # First time - present config options
+                print(f"[DEBUG] Returning CONFIGURE_PROMPT (initial)")
                 return CONFIGURE_PROMPT
 
         elif phase == UnderstandPhase.CLASSIFY:

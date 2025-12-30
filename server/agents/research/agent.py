@@ -529,6 +529,11 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
                     break
 
         # Handle checkpoint if needed
+        # Skip checkpoints when awaiting user input - the user hasn't responded yet
+        # so we shouldn't auto-approve any state changes
+        if self.phase_context.awaiting_user_input:
+            return
+
         if phase == ResearchPhase.DECOMPOSE and not self.phase_context.question_tree_approved:
             checkpoint = Checkpoint(
                 id="decompose_approval",

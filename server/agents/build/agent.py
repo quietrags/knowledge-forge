@@ -768,6 +768,11 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
     async def _handle_phase_checkpoint(self, phase: BuildPhase) -> None:
         """Handle checkpoint after phase execution."""
 
+        # Skip checkpoints when awaiting user input - the user hasn't responded yet
+        # so we shouldn't auto-approve any state changes
+        if self.phase_context.awaiting_user_input:
+            return
+
         if phase == BuildPhase.ANCHOR_DISCOVERY and self.phase_context.anchors_confirmed:
             primary = self.phase_context.get_anchor(self.phase_context.primary_anchor_id)
             anchor_list = "\n".join([

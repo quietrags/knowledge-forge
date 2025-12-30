@@ -67,18 +67,29 @@ async def get_or_create_agent(
     Returns:
         An initialized agent ready to process messages
     """
+    print(f"[DEBUG] get_or_create_agent: mode={session.mode}, session_id={session.id[:8]}...")
     agent = create_agent(session, emit_event, checkpoint_handler)
+    print(f"[DEBUG] Agent created: {type(agent).__name__}")
 
     # Check if we have existing agent state to restore
     agent_state = get_agent_state_for_restore(session)
+    phase_ctx = agent_state.get('phase_context', {})
+    print(f"[DEBUG] Existing agent state: current_phase={agent_state.get('current_phase')}")
+    print(f"[DEBUG] Phase context keys: {list(phase_ctx.keys()) if phase_ctx else 'EMPTY'}")
+    print(f"[DEBUG] config_questions_asked={phase_ctx.get('config_questions_asked')}, awaiting_user_input={phase_ctx.get('awaiting_user_input')}")
 
     if agent_state.get("current_phase"):
         # Restore from existing state
+        print(f"[DEBUG] Restoring agent state...")
+        # Set journey_brief before restoring (needed by phase execution)
+        agent.journey_brief = journey_brief
         await agent.restore_state(agent_state)
     else:
         # Initialize fresh
+        print(f"[DEBUG] Initializing fresh agent with journey brief...")
         await agent.initialize(journey_brief)
 
+    print(f"[DEBUG] Agent ready, current_phase={agent.current_phase}")
     return agent
 
 
@@ -93,6 +104,10 @@ def save_agent_state(session: Session, agent: BaseForgeAgent) -> None:
         agent: The agent whose state to save
     """
     state = agent.get_state()
+    phase_ctx = state.get("phase_context", {})
+    print(f"[DEBUG] save_agent_state: current_phase={state.get('current_phase')}")
+    print(f"[DEBUG] Saving phase_context keys: {list(phase_ctx.keys()) if phase_ctx else 'EMPTY'}")
+    print(f"[DEBUG] Saving config_questions_asked={phase_ctx.get('config_questions_asked')}, awaiting_user_input={phase_ctx.get('awaiting_user_input')}")
 
     # Store the complete agent state in the counters dict
     # This maps the agent's internal state to the session's AgentState model
@@ -102,6 +117,7 @@ def save_agent_state(session: Session, agent: BaseForgeAgent) -> None:
         "phase_context": state.get("phase_context", {}),
         "transition_history": state.get("transition_history", []),
     }
+    print(f"[DEBUG] Saved to session.agent_state.counters")
 
     # Mode-specific state (anchor_map for Build, slo_progress for Understand, etc.)
     # is stored in the phase_context by the agent's _serialize_phase_context method
