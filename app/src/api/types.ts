@@ -94,17 +94,45 @@ export type SSEEventType =
   | 'data.category.insight'
   | 'data.key_insight.added'
   | 'data.adjacent_question.added'
-  // Build mode data events
+  // Build mode data events (legacy - kept for backwards compatibility)
   | 'data.construct.added'
   | 'data.decision.added'
   | 'data.capability.added'
   | 'data.grounding_concept.added'
-  // Understand mode data events
+  // Build mode data events (new - from Build agent)
+  | 'data.anchor.added'
+  | 'data.primary_anchor_set'
+  | 'data.anchors_confirmed'
+  | 'data.topic_type'
+  | 'data.construction_slo.added'
+  | 'data.slos_selected'
+  | 'data.construction_sequence'
+  | 'data.sequences_designed'
+  | 'data.construction_round'
+  | 'data.scaffold_level'
+  | 'data.mode_change'
+  | 'data.surrender_strategy'
+  | 'data.construction_verified'
+  | 'data.slo_complete'
+  | 'data.slo_transition'
+  | 'data.session_insights'
+  | 'data.consolidation_complete'
+  | 'data.session_complete'
+  // Understand mode data events (legacy - kept for backwards compatibility)
   | 'data.assumption.surfaced'
   | 'data.assumption.discarded'
   | 'data.concept.added'
   | 'data.concept.distinguished'
   | 'data.model.integrated'
+  // Understand mode data events (new - from Understand agent)
+  | 'data.knowledge_confidence'
+  | 'data.session_config'
+  | 'data.slo.added'
+  | 'data.facet_updated'
+  | 'data.calibration_complete'
+  | 'data.diagnostic_result'
+  | 'data.mastery_achieved'
+  | 'data.slo_skipped'
   // Shared events
   | 'narrative.updated'
   | 'phase.changed'
@@ -247,6 +275,158 @@ export interface ModelIntegratedPayload {
   name: string
   description: string
   conceptIds: string[]
+}
+
+// Build agent data events (new)
+export interface AnchorAddedPayload {
+  id: string
+  concept: string
+  strength: 'strong' | 'moderate' | 'weak'
+  evidence: string
+}
+
+export interface PrimaryAnchorSetPayload {
+  anchorId: string
+}
+
+export interface AnchorsConfirmedPayload {
+  anchorIds: string[]
+  primaryId: string
+}
+
+export interface TopicTypePayload {
+  topicType: 'vocabulary' | 'mental_model' | 'skill' | 'disposition'
+}
+
+export interface ConstructionSLOAddedPayload {
+  id: string
+  statement: string
+  frame: string
+  inScope: string[]
+  outOfScope: string[]
+  estimatedRounds: number
+}
+
+export interface SLOsSelectedPayload {
+  sloIds: string[]
+  sequence: string[]
+}
+
+export interface ConstructionSequencePayload {
+  sloId: string
+  sequence: Array<{
+    phase: string
+    description: string
+  }>
+}
+
+export interface SequencesDesignedPayload {
+  ready: boolean
+}
+
+export interface ConstructionRoundPayload {
+  sloId: string
+  round: number
+  totalRounds: number
+  result: 'pass' | 'fail' | 'partial'
+  feedback: string
+}
+
+export interface ScaffoldLevelPayload {
+  level: number
+  direction: 'increased' | 'decreased' | 'maintained'
+}
+
+export interface ModeChangePayload {
+  from: 'doing' | 'teaching' | 'watching'
+  to: 'doing' | 'teaching' | 'watching'
+  reason: string
+}
+
+export interface SurrenderStrategyPayload {
+  strategy: string
+  reason: string
+}
+
+export interface ConstructionVerifiedPayload {
+  sloId: string
+  verified: boolean
+  evidence: string
+}
+
+export interface SLOCompletePayload {
+  sloId: string
+  success: boolean
+  rounds: number
+}
+
+export interface SLOTransitionPayload {
+  fromSloId: string
+  toSloId: string
+  reason: string
+}
+
+export interface SessionInsightsPayload {
+  insights: string[]
+}
+
+export interface ConsolidationCompletePayload {
+  summary: string
+}
+
+export interface SessionCompletePayload {
+  totalSLOs: number
+  completedSLOs: number
+  summary: string
+}
+
+// Understand agent data events (new)
+export interface KnowledgeConfidencePayload {
+  level: 'high' | 'medium' | 'low' | 'unknown'
+  evidence: string
+}
+
+export interface SessionConfigPayload {
+  targetMastery: number
+  maxRounds: number
+}
+
+export interface SLOAddedPayload {
+  id: string
+  statement: string
+  frame: string
+  inScope: string[]
+  outOfScope: string[]
+  estimatedRounds: number
+}
+
+export interface FacetUpdatedPayload {
+  sloId: string
+  facet: 'vocabulary' | 'mental_model' | 'practical_grasp' | 'boundary_conditions' | 'transfer'
+  status: 'not_tested' | 'missing' | 'shaky' | 'solid'
+  evidence: string
+}
+
+export interface CalibrationCompletePayload {
+  sloId: string
+  facets: Record<string, string>
+}
+
+export interface DiagnosticResultPayload {
+  sloId: string
+  round: number
+  result: 'pass' | 'fail'
+  feedback: string
+}
+
+export interface MasteryAchievedPayload {
+  sloId: string
+  rounds: number
+}
+
+export interface SLOSkippedPayload {
+  sloId: string
+  reason: string
 }
 
 // Shared events

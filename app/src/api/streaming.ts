@@ -30,6 +30,34 @@ import type {
   PhaseChangedPayload,
   PathUpdatedPayload,
   ErrorPayload,
+  // Build agent events (new)
+  AnchorAddedPayload,
+  PrimaryAnchorSetPayload,
+  AnchorsConfirmedPayload,
+  TopicTypePayload,
+  ConstructionSLOAddedPayload,
+  SLOsSelectedPayload,
+  ConstructionSequencePayload,
+  SequencesDesignedPayload,
+  ConstructionRoundPayload,
+  ScaffoldLevelPayload,
+  ModeChangePayload,
+  SurrenderStrategyPayload,
+  ConstructionVerifiedPayload,
+  SLOCompletePayload,
+  SLOTransitionPayload,
+  SessionInsightsPayload,
+  ConsolidationCompletePayload,
+  SessionCompletePayload,
+  // Understand agent events (new)
+  KnowledgeConfidencePayload,
+  SessionConfigPayload,
+  SLOAddedPayload,
+  FacetUpdatedPayload,
+  CalibrationCompletePayload,
+  DiagnosticResultPayload,
+  MasteryAchievedPayload,
+  SLOSkippedPayload,
 } from './types'
 
 // ============================================================================
@@ -56,18 +84,48 @@ export interface StreamHandlers {
   onKeyInsightAdded?: (payload: KeyInsightAddedPayload) => void
   onAdjacentQuestionAdded?: (payload: AdjacentQuestionAddedPayload) => void
 
-  // Build mode events
+  // Build mode events (legacy)
   onConstructAdded?: (payload: ConstructAddedPayload) => void
   onDecisionAdded?: (payload: DecisionAddedPayload) => void
   onCapabilityAdded?: (payload: CapabilityAddedPayload) => void
   onGroundingConceptAdded?: (payload: GroundingConceptAddedPayload) => void
 
-  // Understand mode events
+  // Build mode events (new - from Build agent)
+  onAnchorAdded?: (payload: AnchorAddedPayload) => void
+  onPrimaryAnchorSet?: (payload: PrimaryAnchorSetPayload) => void
+  onAnchorsConfirmed?: (payload: AnchorsConfirmedPayload) => void
+  onTopicType?: (payload: TopicTypePayload) => void
+  onConstructionSLOAdded?: (payload: ConstructionSLOAddedPayload) => void
+  onSLOsSelected?: (payload: SLOsSelectedPayload) => void
+  onConstructionSequence?: (payload: ConstructionSequencePayload) => void
+  onSequencesDesigned?: (payload: SequencesDesignedPayload) => void
+  onConstructionRound?: (payload: ConstructionRoundPayload) => void
+  onScaffoldLevel?: (payload: ScaffoldLevelPayload) => void
+  onModeChange?: (payload: ModeChangePayload) => void
+  onSurrenderStrategy?: (payload: SurrenderStrategyPayload) => void
+  onConstructionVerified?: (payload: ConstructionVerifiedPayload) => void
+  onSLOComplete?: (payload: SLOCompletePayload) => void
+  onSLOTransition?: (payload: SLOTransitionPayload) => void
+  onSessionInsights?: (payload: SessionInsightsPayload) => void
+  onConsolidationComplete?: (payload: ConsolidationCompletePayload) => void
+  onSessionComplete?: (payload: SessionCompletePayload) => void
+
+  // Understand mode events (legacy)
   onAssumptionSurfaced?: (payload: AssumptionSurfacedPayload) => void
   onAssumptionDiscarded?: (payload: AssumptionDiscardedPayload) => void
   onConceptAdded?: (payload: ConceptAddedPayload) => void
   onConceptDistinguished?: (payload: ConceptDistinguishedPayload) => void
   onModelIntegrated?: (payload: ModelIntegratedPayload) => void
+
+  // Understand mode events (new - from Understand agent)
+  onKnowledgeConfidence?: (payload: KnowledgeConfidencePayload) => void
+  onSessionConfig?: (payload: SessionConfigPayload) => void
+  onSLOAdded?: (payload: SLOAddedPayload) => void
+  onFacetUpdated?: (payload: FacetUpdatedPayload) => void
+  onCalibrationComplete?: (payload: CalibrationCompletePayload) => void
+  onDiagnosticResult?: (payload: DiagnosticResultPayload) => void
+  onMasteryAchieved?: (payload: MasteryAchievedPayload) => void
+  onSLOSkipped?: (payload: SLOSkippedPayload) => void
 
   // Shared events
   onNarrativeUpdated?: (payload: NarrativeUpdatedPayload) => void
@@ -86,12 +144,15 @@ export interface StreamHandlers {
 // ============================================================================
 
 const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
+  // Session lifecycle
   'session.started': 'onSessionStarted',
   'session.resumed': 'onSessionResumed',
   'session.ended': 'onSessionEnded',
+  // Agent activity
   'agent.thinking': 'onAgentThinking',
   'agent.speaking': 'onAgentSpeaking',
   'agent.complete': 'onAgentComplete',
+  // Research mode
   'data.question.added': 'onQuestionAdded',
   'data.question.updated': 'onQuestionUpdated',
   'data.question.answered': 'onQuestionAnswered',
@@ -99,15 +160,46 @@ const EVENT_HANDLER_MAP: Record<SSEEventType, keyof StreamHandlers | null> = {
   'data.category.insight': 'onCategoryInsight',
   'data.key_insight.added': 'onKeyInsightAdded',
   'data.adjacent_question.added': 'onAdjacentQuestionAdded',
+  // Build mode (legacy)
   'data.construct.added': 'onConstructAdded',
   'data.decision.added': 'onDecisionAdded',
   'data.capability.added': 'onCapabilityAdded',
   'data.grounding_concept.added': 'onGroundingConceptAdded',
+  // Build mode (new - from Build agent)
+  'data.anchor.added': 'onAnchorAdded',
+  'data.primary_anchor_set': 'onPrimaryAnchorSet',
+  'data.anchors_confirmed': 'onAnchorsConfirmed',
+  'data.topic_type': 'onTopicType',
+  'data.construction_slo.added': 'onConstructionSLOAdded',
+  'data.slos_selected': 'onSLOsSelected',
+  'data.construction_sequence': 'onConstructionSequence',
+  'data.sequences_designed': 'onSequencesDesigned',
+  'data.construction_round': 'onConstructionRound',
+  'data.scaffold_level': 'onScaffoldLevel',
+  'data.mode_change': 'onModeChange',
+  'data.surrender_strategy': 'onSurrenderStrategy',
+  'data.construction_verified': 'onConstructionVerified',
+  'data.slo_complete': 'onSLOComplete',
+  'data.slo_transition': 'onSLOTransition',
+  'data.session_insights': 'onSessionInsights',
+  'data.consolidation_complete': 'onConsolidationComplete',
+  'data.session_complete': 'onSessionComplete',
+  // Understand mode (legacy)
   'data.assumption.surfaced': 'onAssumptionSurfaced',
   'data.assumption.discarded': 'onAssumptionDiscarded',
   'data.concept.added': 'onConceptAdded',
   'data.concept.distinguished': 'onConceptDistinguished',
   'data.model.integrated': 'onModelIntegrated',
+  // Understand mode (new - from Understand agent)
+  'data.knowledge_confidence': 'onKnowledgeConfidence',
+  'data.session_config': 'onSessionConfig',
+  'data.slo.added': 'onSLOAdded',
+  'data.facet_updated': 'onFacetUpdated',
+  'data.calibration_complete': 'onCalibrationComplete',
+  'data.diagnostic_result': 'onDiagnosticResult',
+  'data.mastery_achieved': 'onMasteryAchieved',
+  'data.slo_skipped': 'onSLOSkipped',
+  // Shared
   'narrative.updated': 'onNarrativeUpdated',
   'phase.changed': 'onPhaseChanged',
   'path.updated': 'onPathUpdated',
