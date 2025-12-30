@@ -176,6 +176,7 @@ class ResearchPhaseContext(BasePhaseContext):
             "phase_visits": self.phase_visits,
             "backward_trigger": self.backward_trigger,
             "backward_trigger_detail": self.backward_trigger_detail,
+            "awaiting_user_input": self.awaiting_user_input,
             "categories": [c.model_dump(by_alias=True) for c in self.categories],
             "questions": [q.model_dump(by_alias=True) for q in self.questions],
             "question_tree_presented": self.question_tree_presented,
@@ -196,6 +197,7 @@ class ResearchPhaseContext(BasePhaseContext):
         ctx.phase_visits = data.get("phase_visits", {})
         ctx.backward_trigger = data.get("backward_trigger")
         ctx.backward_trigger_detail = data.get("backward_trigger_detail")
+        ctx.awaiting_user_input = data.get("awaiting_user_input", False)
         ctx.categories = [
             CategoryQuestion(**c) for c in data.get("categories", [])
         ]

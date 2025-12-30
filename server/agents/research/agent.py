@@ -205,6 +205,8 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
         async def mark_question_tree_presented(args: dict[str, Any]) -> dict[str, Any]:
             """Mark that question tree was presented - agent should now wait for approval."""
             agent.phase_context.question_tree_presented = True
+            # Block transitions until user responds
+            agent.phase_context.awaiting_user_input = True
 
             return {"content": [{"type": "text", "text": f"Question tree presented ({len(agent.phase_context.categories)} categories, {len(agent.phase_context.questions)} questions). STOP and wait for user approval before proceeding."}]}
 

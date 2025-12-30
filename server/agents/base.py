@@ -88,6 +88,10 @@ class BasePhaseContext:
     backward_trigger: Optional[str] = None
     backward_trigger_detail: Optional[str] = None
 
+    # Flag to block phase transitions until user responds
+    # When set by a "mark_*_asked" tool, prevents transitions until cleared
+    awaiting_user_input: bool = False
+
     def increment_visit(self, phase: Enum) -> int:
         """Increment and return visit count for a phase."""
         key = phase.value
@@ -431,6 +435,11 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
         print(f"[DEBUG] Current phase: {self.current_phase}, Complete phase: {self.complete_phase}")
         context = context or {}
 
+        # Clear the awaiting_user_input flag since user has now responded
+        if self.phase_context.awaiting_user_input:
+            print(f"[DEBUG] User responded - clearing awaiting_user_input flag")
+            self.phase_context.awaiting_user_input = False
+
         iteration = 0
         while self.current_phase != self.complete_phase:
             iteration += 1
@@ -518,6 +527,12 @@ class BaseForgeAgent(ABC, Generic[PhaseType, ContextType]):
 
         Returns the next phase (may be same as current if no transition).
         """
+        # If awaiting user input, block all transitions
+        # This prevents the agent from proceeding before user responds
+        if self.phase_context.awaiting_user_input:
+            print(f"[DEBUG] Blocking transitions - awaiting user input in {self.current_phase}")
+            return self.current_phase
+
         # Get transitions from current phase
         current_transitions = [
             t for t in self.phase_transitions

@@ -217,6 +217,8 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         async def mark_config_questions_asked(args: dict[str, Any]) -> dict[str, Any]:
             """Mark that config questions were asked - agent should now wait for response."""
             agent.phase_context.config_questions_asked = True
+            # Block transitions until user responds
+            agent.phase_context.awaiting_user_input = True
 
             return {"content": [{"type": "text", "text": "Configuration questions presented. STOP and wait for the learner's response before proceeding."}]}
 
@@ -308,6 +310,8 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         async def mark_slos_presented(args: dict[str, Any]) -> dict[str, Any]:
             """Mark that SLOs were presented - agent should now wait for selection."""
             agent.phase_context.slos_presented = True
+            # Block transitions until user responds
+            agent.phase_context.awaiting_user_input = True
 
             slo_count = len(agent.phase_context.slos)
             return {"content": [{"type": "text", "text": f"{slo_count} SLOs presented. STOP and wait for the learner to select which ones they want before proceeding."}]}

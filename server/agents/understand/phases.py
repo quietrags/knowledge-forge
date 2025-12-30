@@ -328,6 +328,7 @@ class UnderstandPhaseContext(BasePhaseContext):
             "phase_visits": self.phase_visits,
             "backward_trigger": self.backward_trigger,
             "backward_trigger_detail": self.backward_trigger_detail,
+            "awaiting_user_input": self.awaiting_user_input,
             # Stage 0
             "knowledge_confidence": self.knowledge_confidence,
             "topic_brief": self.topic_brief,
@@ -367,6 +368,7 @@ class UnderstandPhaseContext(BasePhaseContext):
         ctx.phase_visits = data.get("phase_visits", {})
         ctx.backward_trigger = data.get("backward_trigger")
         ctx.backward_trigger_detail = data.get("backward_trigger_detail")
+        ctx.awaiting_user_input = data.get("awaiting_user_input", False)
         # Stage 0
         ctx.knowledge_confidence = data.get("knowledge_confidence", "MEDIUM")
         ctx.topic_brief = data.get("topic_brief")

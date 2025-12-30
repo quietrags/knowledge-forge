@@ -321,6 +321,7 @@ class BuildPhaseContext(BasePhaseContext):
             "phase_visits": self.phase_visits,
             "backward_trigger": self.backward_trigger,
             "backward_trigger_detail": self.backward_trigger_detail,
+            "awaiting_user_input": self.awaiting_user_input,
             # Phase 0
             "anchors": [
                 {"id": a.id, "description": a.description, "strength": a.strength, "evidence": a.evidence}
@@ -379,6 +380,7 @@ class BuildPhaseContext(BasePhaseContext):
         ctx.phase_visits = data.get("phase_visits", {})
         ctx.backward_trigger = data.get("backward_trigger")
         ctx.backward_trigger_detail = data.get("backward_trigger_detail")
+        ctx.awaiting_user_input = data.get("awaiting_user_input", False)
         # Phase 0
         ctx.anchors = [Anchor(**a) for a in data.get("anchors", [])]
         ctx.primary_anchor_id = data.get("primary_anchor_id")
