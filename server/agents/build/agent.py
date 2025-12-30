@@ -729,9 +729,10 @@ class BuildAgent(BaseForgeAgent[BuildPhase, BuildPhaseContext]):
         is_user_response = message and message != self.journey_brief.original_question
         if is_user_response and phase in [
             BuildPhase.ANCHOR_DISCOVERY,
+            BuildPhase.CLASSIFY,
             BuildPhase.CONSTRUCTION,
         ]:
-            prompt += f"\n\n**Learner's Response:** {message}\n\nEvaluate this response and continue with the appropriate next step."
+            prompt += f"\n\n**Learner's Response:** {message}"
 
         options = ClaudeAgentOptions(
             system_prompt=SYSTEM_PROMPT,

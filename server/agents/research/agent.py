@@ -496,7 +496,7 @@ class ResearchAgent(BaseForgeAgent[ResearchPhase, ResearchPhaseContext]):
             ResearchPhase.DECOMPOSE,
             ResearchPhase.ANSWER,
         ]:
-            prompt += f"\n\n**User's Input:** {message}\n\nConsider this input and continue with your research."
+            prompt += f"\n\n**User's Response:** {message}"
 
         # Build SDK options
         options = ClaudeAgentOptions(

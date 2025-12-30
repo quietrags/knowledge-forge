@@ -683,10 +683,12 @@ class UnderstandAgent(BaseForgeAgent[UnderstandPhase, UnderstandPhaseContext]):
         # (Don't include the original question on the first call)
         is_user_response = message and message != self.journey_brief.original_question
         if is_user_response and phase in [
+            UnderstandPhase.CONFIGURE,
+            UnderstandPhase.CLASSIFY,
             UnderstandPhase.CALIBRATE,
             UnderstandPhase.DIAGNOSE,
         ]:
-            prompt += f"\n\n**Learner's Response:** {message}\n\nEvaluate this response and continue with the appropriate next step."
+            prompt += f"\n\n**Learner's Response:** {message}"
 
         # Log phase execution start
         if self._logger:
