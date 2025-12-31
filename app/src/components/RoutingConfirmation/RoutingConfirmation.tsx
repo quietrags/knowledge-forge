@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useJourneyBrief, useForgeActions } from '../../store/useStore'
 import { useJourneyConfirm } from '../../api/hooks'
+import { sendChatMessage } from '../../api/client'
 import type { Mode } from '../../types'
 import styles from './RoutingConfirmation.module.css'
 
@@ -51,6 +52,24 @@ export const RoutingConfirmation = () => {
       if (session) {
         // Store the session ID for later API calls
         setSessionId(session.sessionId)
+
+        // Send the original question as the first chat message to kick off the agent
+        // This happens before UI transition so the agent starts processing immediately
+        console.log('[DEBUG] Sending initial chat message:', {
+          sessionId: session.sessionId,
+          message: journeyBrief.originalQuestion,
+        })
+        try {
+          await sendChatMessage({
+            sessionId: session.sessionId,
+            message: journeyBrief.originalQuestion,
+          })
+          console.log('[DEBUG] Initial chat message sent successfully')
+        } catch (chatErr) {
+          console.warn('[DEBUG] Failed to send initial message:', chatErr)
+          // Continue anyway - user can send manually
+        }
+
         // Now trigger the local state transition
         confirmJourney()
       }

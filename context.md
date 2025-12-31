@@ -132,23 +132,49 @@ build-output/
 
 ## 5. Skill Specs Summary
 
-### /understand-v3 (Socratic)
+### Core Philosophy
+
+**Understanding and Building are END GOALS. Research is a supporting TOOL.**
+
+```
+END GOALS:
+├── Understanding → comprehension you can explain, apply, teach
+└── Building → working capability: code, systems, skills
+
+TOOL (invoked when needed):
+└── Research → answers gaps, finds sources, returns to end goal
+```
+
+Research is NOT always needed. Sometimes you:
+- Reason from first principles
+- Learn by doing
+- Build on existing knowledge
+
+---
+
+### /understand-v3 (Socratic) — END GOAL
+- **Purpose:** Build deep, transferable comprehension
 - **Core:** Diagnose knowledge gaps through questioning, teach to gaps
 - **Phases:** Self-assessment → Config → Diagnostic loop → SLO completion → Artifact generation
 - **Key mechanism:** "Explain to 12-year-old" test, Triple Calibration
 - **Output:** index.html + mental-model.md + research-seeds.md + session-journal.md
+- **Research:** Invoked when gaps need external evidence (optional)
 
-### /research-v3 (Evidence-based)
-- **Core:** Gather authoritative sources, synthesize with quality validation
-- **Phases:** Intention capture → Source research → Content synthesis
-- **Key mechanism:** Authority tiers, depth checks, credibility scoring
-- **Output:** index.html + deck.html + narrative.md + sources.json + visuals/
-
-### /build-v1 (Constructivist)
+### /build-v1 (Constructivist) — END GOAL
+- **Purpose:** Construct working capability through scaffolded learning
 - **Core:** Find anchors in prior knowledge, scaffold construction (never transmit)
 - **Phases:** Anchor discovery → MLO breakdown → Construction loop → Consolidation → Artifacts
 - **Key mechanism:** Surrender Recovery Protocol, Code Mode, Three-layer memory
 - **Output:** construction-log.md + mental-model.md + session-memory.json + next-steps.md
+- **Research:** Invoked when blockers need external solutions (optional)
+
+### /research-v3 (Evidence-based) — SUPPORTING TOOL
+- **Purpose:** Gather authoritative sources to unblock understanding or building
+- **Core:** Gather authoritative sources, synthesize with quality validation
+- **Phases:** Intention capture → Source research → Content synthesis
+- **Key mechanism:** Authority tiers, depth checks, credibility scoring
+- **Output:** index.html + deck.html + narrative.md + sources.json + visuals/
+- **Relationship:** Called FROM understand/build when needed, returns control to caller
 
 ---
 

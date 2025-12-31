@@ -27,10 +27,16 @@ export function NarrativeTab() {
     narrative = researchData.essay
   }
 
-  if (!narrative || !narrative.full) {
+  // Only show if we have actual narrative content
+  // Conversation/dialogue is shown in ConversationPanel, not here
+  if (!narrative?.full) {
     return (
       <div className={styles.empty}>
-        No content available. Start a {mode} session to see the knowledge narrative.
+        <p>No content available yet.</p>
+        <p className={styles.hint}>
+          The {MODE_LABELS[mode].toLowerCase()} will appear here as you progress through the learning session.
+          Check the Conversation panel on the right to interact with your tutor.
+        </p>
       </div>
     )
   }

@@ -9,14 +9,58 @@ Current learning skills (/understand, /research, /build) run as isolated CLI ses
 - Mode switching requires exiting and re-invoking
 - Topic connections are manual
 
+## Core Philosophy
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      END GOALS                              │
+│  ┌────────────────────┐      ┌────────────────────┐        │
+│  │   Understanding    │      │     Building       │        │
+│  │  (Comprehension)   │      │   (Capability)     │        │
+│  └─────────┬──────────┘      └──────────┬─────────┘        │
+│            │                            │                   │
+│            ▼                            ▼                   │
+│  ┌────────────────────┐      ┌────────────────────┐        │
+│  │      Outputs       │      │      Outputs       │        │
+│  │  - Mental models   │      │  - Working code    │        │
+│  │  - Articles        │      │  - Systems         │        │
+│  │  - Explanations    │      │  - Capabilities    │        │
+│  └────────────────────┘      └────────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ (when gaps arise)
+                          ▼
+              ┌───────────────────────┐
+              │      Research         │
+              │   (Tool, not goal)    │
+              │                       │
+              │  Invoked on-demand    │
+              │  when questions arise │
+              │  that block progress  │
+              └───────────────────────┘
+```
+
+**The Two End Goals:**
+- **Understanding** — Deep comprehension you can explain, apply, and teach
+- **Building** — Working capability: code, systems, or skills
+
+**Research is a Tool, Not a Destination:**
+- Research supports understanding and building when gaps arise
+- It is NOT always needed — sometimes you reason through or learn by doing
+- When invoked, research answers specific questions then returns to the end goal
+
 ## The Vision
 
-A unified web-based learning platform that weaves together:
-- **/understand** (Socratic) — Personal deep learning through questioning
-- **/research** (Evidence-based) — Authoritative content creation with sources
-- **/build** (Constructivist) — Anchor-scaffolded mastery through building
+A unified web-based learning platform with two primary modes and one supporting tool:
 
-**Key principle:** Learning is non-linear. The app should support branching, returning, and connecting across topics and modes.
+**End Goals (Primary Modes):**
+- **/understand** (Socratic) — Deep learning through questioning → mental models, articles
+- **/build** (Constructivist) — Mastery through construction → working code, capabilities
+
+**Supporting Tool (Invoked When Needed):**
+- **/research** (Evidence-based) — Gather authoritative sources to unblock understanding or building
+
+**Key principle:** Learning is non-linear. The app should support branching, returning, and connecting across topics. Research happens IN SERVICE of understanding or building, not as a standalone activity.
 
 ---
 
@@ -66,17 +110,37 @@ A unified web-based learning platform that weaves together:
 
 ## Non-Linear Learning Flow
 
+The flow always starts with an END GOAL (understand or build), never with research.
+
 ```
-Start exploring topic-A (/understand)
-    │
-    ├─► "I need sources" → switch to /research (context preserved)
-    │
-    ├─► "Let me build this" → switch to /build (anchors from /understand)
-    │
-    ├─► "This connects to topic-B" → branch (system pre-populates anchors)
-    │
-    └─► "Write a blog" → /blog-convert with full context
+USER INTENT: "I want to learn X" or "I want to build Y"
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+   /understand              /build
+   (comprehension)          (capability)
+        │                       │
+        ├─► Gap: "I need evidence"  ──► Research (returns to understand)
+        │                       │
+        │                       ├─► Blocker: "How do others do this?" ──► Research (returns to build)
+        │                       │
+        ├─► "Let me try building" ──────► Switch to /build (anchors preserved)
+        │                       │
+        │   ◄── "Let me understand first" ◄──┤
+        │                       │
+        ├─► "This connects to topic-B" ──► Branch (new understand or build)
+        │                       │
+        └─► COMPLETE ──► Outputs (articles, code, mental models)
+                        │
+                        ▼
+                   /blog-convert
 ```
+
+**Key Flow Principles:**
+1. **Start with end goal** — Never start with "research X", start with "understand X" or "build X"
+2. **Research is invoked, not switched to** — It answers a specific question then returns
+3. **Mode switching preserves context** — Anchors, knowledge state, and progress carry over
+4. **Outputs flow from end goals** — Articles from understanding, code from building
 
 ---
 

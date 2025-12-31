@@ -38,3 +38,6 @@ htmlcov/
 
 # Data (sessions are local)
 data/sessions/*.json
+
+# Agent logs
+logs/

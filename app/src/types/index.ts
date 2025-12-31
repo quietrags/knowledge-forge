@@ -29,6 +29,19 @@ export interface JourneyDesignBrief {
 export type JourneyState = 'intake' | 'confirming' | 'active'
 
 // ============================================================================
+// Conversation Types
+// ============================================================================
+
+export type ConversationRole = 'user' | 'tutor'
+
+export interface ConversationMessage {
+  id: string
+  role: ConversationRole
+  content: string
+  timestamp: number
+}
+
+// ============================================================================
 // Build Phase Types (v0.3)
 // ============================================================================
 

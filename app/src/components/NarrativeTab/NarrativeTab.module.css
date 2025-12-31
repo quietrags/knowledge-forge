@@ -104,3 +104,13 @@
   color: var(--text-muted);
   font-size: 14px;
 }
+
+.empty p {
+  margin: 0 0 12px 0;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}

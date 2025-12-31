@@ -5,8 +5,8 @@ FastAPI application for Knowledge Forge backend.
 from __future__ import annotations
 
 import asyncio
-import os
 import signal
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,13 +35,14 @@ async def lifespan(app: FastAPI):
     - Register signal handlers via loop.add_signal_handler() during startup
     - These handlers run IMMEDIATELY when SIGINT arrives (before uvicorn's wait)
     - Handler closes all SSE streams (puts None in queues to unblock generators)
-    - Handler removes itself and re-sends SIGINT for uvicorn to handle normally
-    - Uvicorn's graceful shutdown now finds connections already closing
+    - Handler schedules a clean exit after a brief delay for streams to close
+    - Uses sys.exit(0) instead of re-raising SIGINT to avoid traceback noise
 
     Why other approaches failed:
     - Lifespan shutdown: runs too late (after connections close)
     - asyncio.wait_for timeout: uvicorn still waits for generator completion
     - --timeout-graceful-shutdown: doesn't help if connections don't close
+    - os.kill(SIGINT): works but produces ugly CancelledError tracebacks
     """
     loop = asyncio.get_running_loop()
     shutdown_triggered = False
@@ -56,12 +57,18 @@ async def lifespan(app: FastAPI):
         print("\n[shutdown] Closing all SSE streams...")
         stream_manager.close_all_streams()
 
-        # Remove our handlers so uvicorn can handle the next signal
+        # Remove our handlers
         loop.remove_signal_handler(signal.SIGINT)
         loop.remove_signal_handler(signal.SIGTERM)
 
-        # Re-send SIGINT so uvicorn proceeds with graceful shutdown
-        os.kill(os.getpid(), signal.SIGINT)
+        # Schedule clean exit after brief delay for streams to close
+        # Using sys.exit avoids the CancelledError tracebacks from os.kill(SIGINT)
+        async def delayed_exit():
+            await asyncio.sleep(0.1)  # Let streams finish closing
+            print("[shutdown] Exiting...")
+            sys.exit(0)
+
+        asyncio.create_task(delayed_exit())
 
     # Register signal handlers that run in the event loop
     loop.add_signal_handler(signal.SIGINT, handle_shutdown_signal)
